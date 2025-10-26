@@ -1,0 +1,2221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart AgriConnect - Kisan Advisory</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load EmailJS SDK for Contact Form - UPDATED TO LATEST v4 -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <style>
+        /* Custom font and basic setup */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fef7; /* Light green background */
+        }
+        /* Custom styling for cards and sections */
+        .card {
+            background-color: #ffffff;
+            border: 1px solid #e0e7e9;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+        .tts-button {
+            transition: transform 0.1s ease-in-out;
+        }
+        .tts-button:active {
+            transform: scale(0.95);
+        }
+        /* Style for the notification pop-up/toast instead of alert() */
+        #notification-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s, transform 0.5s;
+            transform: translateY(20px);
+        }
+        .show-toast {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+        .loading-spinner {
+            border-top-color: transparent;
+            border-left-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        /* Style for SVG chart lines */
+        .max-temp-line {
+            stroke: #ef4444; /* Red */
+            stroke-width: 3;
+            fill: none;
+            transition: stroke-dasharray 0.5s ease;
+        }
+        .min-temp-line {
+            stroke: #3b82f6; /* Blue */
+            stroke-width: 3;
+            fill: none;
+            transition: stroke-dasharray 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Notification Toast (replaces alert()) -->
+    <div id="notification-toast" class="max-w-xs p-4 bg-lime-700 text-white rounded-lg shadow-xl card">
+        <p id="toast-message" class="text-sm font-medium"></p>
+    </div>
+
+    <div id="app-container" class="min-h-screen flex flex-col">
+
+        <!-- Header and Navigation -->
+        <header class="bg-lime-600 shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-white tracking-wider cursor-pointer" onclick="window.showPage('home')">
+                    Smart AgriConnect 🌾
+                </h1>
+                <nav class="hidden md:flex space-x-4">
+                    <button class="text-white hover:text-lime-200 p-2 rounded-lg" onclick="window.showPage('home')">Home</button>
+                    <button class="text-white hover:text-lime-200 p-2 rounded-lg" onclick="window.showPage('weather')">Live Weather</button>
+                    <button class="text-white hover:text-lime-200 p-2 rounded-lg" onclick="window.showPage('mandi')">Mandi Prices</button>
+                    <button class="text-white hover:text-lime-200 p-2 rounded-lg" onclick="window.showPage('diagnosis')">Advisory Tools</button>
+                    <button class="text-white hover:text-lime-200 p-2 rounded-lg" onclick="window.showPage('schemes')">Govt Schemes</button>
+                    <button class="text-white hover:text-lime-200 p-2 rounded-lg" onclick="window.showPage('contact')">Contact</button>
+                    <button id="notify-btn" class="bg-yellow-400 text-lime-800 font-semibold px-3 py-1.5 rounded-full shadow-lg hover:bg-yellow-300 transition" onclick="window.requestNotificationPermission()">
+                        <span id="notify-status">Enable Alerts</span>
+                    </button>
+                </nav>
+                <button class="md:hidden text-white text-3xl" onclick="window.toggleMobileMenu()">☰</button>
+            </div>
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="md:hidden hidden bg-lime-700">
+                <nav class="flex flex-col p-4 space-y-2">
+                    <button class="text-white hover:bg-lime-600 p-2 rounded-lg text-left" onclick="window.showPage('home'); window.toggleMobileMenu()">Home</button>
+                    <button class="text-white hover:bg-lime-600 p-2 rounded-lg text-left" onclick="window.showPage('weather'); window.toggleMobileMenu()">Live Weather</button>
+                    <button class="text-white hover:bg-lime-600 p-2 rounded-lg text-left" onclick="window.showPage('mandi'); window.toggleMobileMenu()">Mandi Prices</button>
+                    <button class="text-white hover:bg-lime-600 p-2 rounded-lg text-left" onclick="window.showPage('diagnosis'); window.toggleMobileMenu()">Advisory Tools</button>
+                    <button class="text-white hover:bg-lime-600 p-2 rounded-lg text-left" onclick="window.showPage('schemes'); window.toggleMobileMenu()">Govt Schemes</button>
+                    <button class="text-white hover:bg-lime-600 p-2 rounded-lg text-left" onclick="window.showPage('contact'); window.toggleMobileMenu()">Contact</button>
+                    <button class="bg-yellow-400 text-lime-800 font-semibold px-3 py-1.5 rounded-full shadow-lg hover:bg-yellow-300 transition w-full mt-2" onclick="window.requestNotificationPermission(); window.toggleMobileMenu()">
+                        <span id="notify-status-mobile">Enable Alerts</span>
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="content-container" class="flex-grow p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+            <!-- Page content will be injected here -->
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-100 p-4 text-center text-gray-600 text-sm">
+            <p>&copy; 2025 Smart AgriConnect. Built with AI Advisory & Web Technology.</p>
+        </footer>
+    </div>
+
+    <!-- Main Application Script -->
+    <script type="module">
+        // --- API & APP CONFIGURATION ---
+        const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
+        // Gemini API key for advisory and scheme explanation.
+        const GEMINI_API_KEY = "AIzaSyD6PscTT4gY4peAX3k2UU8yMNcSV2Q0XJw"; 
+
+        // Visual Crossing API key is now deprecated in favor of static data.
+        const WEATHER_API_KEY = "UD4R978PWVYJP4UKCSFWEGE2R"; 
+        
+        // Chhatrapati Sambhajinagar (Aurangabad), Maharashtra
+        const DEFAULT_LOCATION_NAME = "Chhatrapati Sambhajinagar (Aurangabad), Maharashtra";
+
+        const NOTIFICATION_INTERVAL_MS = 3600000; // 1 hour
+
+        // EmailJS Configuration
+        const EMAILJS_SERVICE_ID = "service_ag9j7qe";
+        const EMAILJS_TEMPLATE_ID = "template_uwpzl0i";
+        const CONTACT_EMAIL = "chetanbhagure899@gmail.com";
+        const EMAILJS_PUBLIC_KEY = "kmvW2AJYQjAwZxEt7"; // Your EmailJS Public Key
+        // ---------------------------------
+
+        // Global State (Simplified after removing Firebase)
+        window.currentWeatherData = null;
+        window.defaultCrops = ["Soybean", "Wheat", "Bajra", "Potato", "Onion"];
+
+        // Helper function for custom non-blocking notification toast
+        window.showToast = function(message) {
+            const toast = document.getElementById('notification-toast');
+            const toastMessage = document.getElementById('toast-message');
+            toastMessage.textContent = message;
+            toast.classList.add('show-toast');
+            setTimeout(() => {
+                toast.classList.remove('show-toast');
+            }, 3000);
+        }
+
+        // --- GEMINI API UTILITY FUNCTIONS ---
+
+        /**
+         * Generic function to call the Gemini API with exponential backoff.
+         * @param {object} payload - The API request body.
+         * @param {boolean} useGrounding - Whether to enable Google Search grounding.
+         * @returns {Promise<object>} The API response structure containing text and sources.
+         */
+        window.callGeminiApi = async function(payload, useGrounding = false) {
+            const MAX_RETRIES = 5;
+            let response = null;
+
+            // Use the API URL with the GEMINI_API_KEY
+            const geminiApiUrlWithKey = `${GEMINI_API_BASE_URL}?key=${GEMINI_API_KEY}`;
+
+            // Safety check for local environments
+            if (!GEMINI_API_KEY && (window.location.protocol === 'http:' || window.location.protocol === 'file:')) {
+                console.warn("API Key Warning: Gemini API Key is missing. Advisory features will fail.");
+            }
+
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                try {
+                    const finalPayload = {
+                        ...payload,
+                        tools: useGrounding ? [{ "google_search": {} }] : undefined,
+                    };
+                    
+                    response = await fetch(geminiApiUrlWithKey, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(finalPayload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429 && i < MAX_RETRIES - 1) {
+                            const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            continue;
+                        }
+                        // Handle 401/403 specifically
+                        if (response.status === 401 || response.status === 403) {
+                             console.error(`Gemini API Error: Status ${response.status}. Authentication failed.`);
+                             // CRITICAL DEBUG: Throw the error with details
+                             throw new Error(`API call failed with status: ${response.status}. Check GEMINI_API_KEY.`);
+                        }
+                        // CRITICAL DEBUG: Throw the error with status
+                        throw new Error(`API call failed with status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        const text = candidate.content.parts[0].text;
+                        let sources = [];
+                        const groundingMetadata = candidate.groundingMetadata;
+                        // FIX: Access groundingAttributions from groundingMetadata
+                        if (groundingMetadata && groundingMetadata.groundingAttributions) { 
+                            sources = groundingMetadata.groundingAttributions
+                                .map(attribution => ({ uri: attribution.web?.uri, title: attribution.web?.title }))
+                                .filter(source => source.uri && source.title);
+                        }
+                        return { text, sources };
+                    } else {
+                        // CRITICAL DEBUG: Log and throw if response is malformed
+                        console.error("Gemini API Error: Invalid response structure.", result);
+                        throw new Error("Invalid response structure from Gemini API.");
+                    }
+
+                } catch (error) {
+                    if (i === MAX_RETRIES - 1) {
+                        throw error;
+                    }
+                }
+            }
+        }
+
+        // --- 1. TEXT-TO-SPEECH (TTS) IN MARATHI ---
+
+        // Variable to hold the best found voice
+        let selectedVoice = null;
+
+        // Function to find and cache the voice
+        function findMarathiVoice() {
+            if (selectedVoice) return; // Already found
+
+            const voices = speechSynthesis.getVoices();
+            // Prioritize Marathi, then Hindi, then use a default if none are found.
+            selectedVoice = voices.find(voice => voice.lang.startsWith('mr-'));
+            if (!selectedVoice) {
+                selectedVoice = voices.find(voice => voice.lang.startsWith('hi-'));
+            }
+
+            if (!selectedVoice) {
+                console.warn("Marathi/Hindi voice not found. Using default voice (likely English).");
+            } else {
+                console.log(`TTS Voice found: ${selectedVoice.name} (${selectedVoice.lang})`);
+            }
+        }
+
+        // Event listener to wait for voices to load (critical for cross-browser reliability)
+        if ('speechSynthesis' in window) {
+            speechSynthesis.onvoiceschanged = findMarathiVoice;
+            // If the event already fired before the script loaded, call it manually.
+            if (speechSynthesis.getVoices().length > 0) {
+                findMarathiVoice();
+            }
+        }
+
+
+        window.speakMarathi = function(text, element) {
+            if (!('speechSynthesis' in window)) {
+                window.showToast("Text-to-Speech not supported in this browser.");
+                return;
+            }
+
+            if (!selectedVoice && speechSynthesis.getVoices().length === 0) {
+                 window.showToast("TTS voices are loading or unavailable on your system.");
+                 return;
+            }
+            
+            // Re-check for voice if it hasn't been set yet (for immediate clicks)
+            if (!selectedVoice) {
+                findMarathiVoice();
+            }
+
+            // Clean text for speech synthesis (remove excess whitespace, etc.)
+            const cleanText = text.replace(/\s+/g, ' ').trim();
+            if (!cleanText) return; // Don't speak empty text
+
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+                // Set language code explicitly to help pronunciation
+                utterance.lang = selectedVoice.lang;
+            } else {
+                // Fallback to English but still set the Marathi text
+                utterance.lang = 'en-US'; 
+            }
+
+            utterance.pitch = 1;
+            utterance.rate = 0.95; // Slightly slower pace
+            
+            // Add a visual indicator
+            if (element) {
+                element.classList.add('animate-pulse', 'bg-red-200');
+                utterance.onend = () => element.classList.remove('animate-pulse', 'bg-red-200');
+                utterance.onerror = () => element.classList.remove('animate-pulse', 'bg-red-200');
+            }
+
+            // Cancel any ongoing speech before starting new one
+            speechSynthesis.cancel();
+            speechSynthesis.speak(utterance);
+        }
+
+        // --- 2. UI AND ROUTING ---
+
+        window.toggleMobileMenu = function() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        }
+
+        window.showPage = function(pageId) {
+            const container = document.getElementById('content-container');
+            let content = '';
+            let title = '';
+
+            // Handle mobile menu close on navigation
+            if (!document.getElementById('mobile-menu').classList.contains('hidden')) {
+                window.toggleMobileMenu();
+            }
+
+            switch(pageId) {
+                case 'home':
+                    title = "Welcome to Smart AgriConnect";
+                    content = window.createHomePage();
+                    break;
+                case 'diagnosis':
+                    title = "AI-Powered Advisory Tools";
+                    content = window.createDiagnosisPage();
+                    break;
+                case 'weather':
+                    title = "Live Village Weather Updates";
+                    content = window.createWeatherPage();
+                    // NOTE: window.fetchWeather() is now called in window.onload for reliability
+                    break;
+                case 'mandi':
+                    title = "Mandi Real-Time Prices";
+                    content = window.createMandiPricesPage();
+                    break; // Removed renderMandiPrices call here
+                case 'schemes':
+                    title = "Government Agriculture Schemes";
+                    content = window.createSchemesPage();
+                    break;
+                case 'contact':
+                    title = "Contact & Donate";
+                    content = window.createContactPage();
+                    break;
+                default:
+                    title = "Page Not Found";
+                    content = `<div class="p-8 text-center text-gray-500">Page ${pageId} not found.</div>`;
+            }
+
+            container.innerHTML = `
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-4xl font-extrabold text-lime-800">${title}</h2>
+                    <button class="tts-button p-3 bg-indigo-500 text-white rounded-full shadow-lg hover:bg-indigo-600 focus:outline-none" onclick="window.speakMarathi(document.title + ' ' + document.getElementById('content-container').innerText.substring(0, 300), this)">
+                        🗣️ TTS (मराठी)
+                    </button>
+                </div>
+                <div id="${pageId}-content-area">${content}</div>
+            `;
+
+            // CRITICAL FIX: Render Mandi data *after* the HTML element is in the DOM
+            if (pageId === 'mandi') {
+                window.renderMandiPrices();
+            }
+        }
+
+        window.createHomePage = function() {
+            return `
+                <section class="text-center py-16 bg-lime-50 card rounded-xl mb-8 border-lime-300">
+                    <div class="relative w-full h-80 mb-8 rounded-lg overflow-hidden shadow-2xl">
+                        <!-- More attractive banner -->
+                        <img src="https://placehold.co/1000x400/16a34a/ffffff?text=SMART+AGRI+CONNECT+%7C+FUTURE+OF+FARMING" alt="Farming banner" class="object-cover w-full h-full">
+                        <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                             <div class="p-4 rounded-xl bg-black bg-opacity-20 backdrop-blur-sm">
+                                <h3 class="text-5xl font-extrabold text-white tracking-wide shadow-2xl md:text-6xl">HARNESSING AI FOR HARVEST</h3>
+                                <p class="text-xl text-yellow-300 mt-2 font-medium">Your Digital Guide to Sustainable Prosperity</p>
+                             </div>
+                        </div>
+                    </div>
+
+                    <h4 class="text-3xl font-bold text-lime-700 mt-4 mb-3">Our Mission</h4>
+                    <p class="text-gray-600 max-w-3xl mx-auto text-lg">
+                        To empower every farmer in the region with real-time, actionable insights on **Weather, Market Prices, and Government Support**, enabling smart decisions, risk mitigation, and sustainable growth.
+                    </p>
+                    
+                    <!-- NEW: "What We Offer" Section -->
+                    <div class="mt-12">
+                        <h4 class="text-3xl font-bold text-indigo-700 mb-6">What We Offer</h4>
+                        <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                            <!-- Feature Card 1: Advisory Tools -->
+                            <div class="card p-6 rounded-xl border-indigo-200 shadow-md hover:shadow-xl hover:scale-[1.02] transition">
+                                <div class="text-5xl mb-3">🧠</div>
+                                <h5 class="text-xl font-bold text-indigo-600">AI Advisory Tools</h5>
+                                <p class="text-sm text-gray-500 mt-2">Diagnose diseases, calculate fertilizer needs, estimate loan eligibility, and draft business plans using grounded AI.</p>
+                                <button class="mt-4 px-4 py-2 bg-indigo-500 text-white text-sm font-semibold rounded-full hover:bg-indigo-600 transition" onclick="window.showPage('diagnosis')">Explore AI Tools</button>
+                            </div>
+                            
+                            <!-- Feature Card 2: Market Prices -->
+                            <div class="card p-6 rounded-xl border-red-200 shadow-md hover:shadow-xl hover:scale-[1.02] transition">
+                                <div class="text-5xl mb-3">📈</div>
+                                <h5 class="text-xl font-bold text-red-600">Market Price & Trends</h5>
+                                <p class="text-sm text-gray-500 mt-2">View real-time (static demo) Mandi prices, analyze volatility, and receive expert advice on the best selling windows.</p>
+                                <button class="mt-4 px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-full hover:bg-red-600 transition" onclick="window.showPage('mandi')">Check Mandi Prices</button>
+                            </div>
+
+                             <!-- Feature Card 3: Weather & Schemes -->
+                            <div class="card p-6 rounded-xl border-teal-200 shadow-md hover:shadow-xl hover:scale-[1.02] transition">
+                                <div class="text-5xl mb-3">🌤️</div>
+                                <h5 class="text-xl font-bold text-teal-600">Weather & Government Support</h5>
+                                <p class="text-sm text-gray-500 mt-2">View the 8-day forecast, get irrigation schedules, and simplify complex government schemes instantly.</p>
+                                <button class="mt-4 px-4 py-2 bg-teal-500 text-white text-sm font-semibold rounded-full hover:bg-teal-600 transition" onclick="window.showPage('weather')">View Weather/Schemes</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            `;
+        }
+
+        // --- [START OF INSERTED CODE BLOCK] ---
+
+        // --- NEW PAGE: ADVISORY TOOLS (Disease Diagnosis & Fertilizer & LOAN & STORAGE & MACHINERY) ---
+        window.createDiagnosisPage = function() {
+            const allCrops = ["Soybean", "Wheat", "Bajra", "Vegetables", "Sugarcane", "Cotton", "Cotton", "Tomato", "Onion", "Potato"];
+            const cropOptions = allCrops.map(crop => `<option value="${crop}">${crop}</option>`).join('');
+
+            // NEW: Generate options for the Loan Advisor using mandiData
+             const loanCropOptions = mandiData.map(item => 
+                 `<option value="${item.crop}" data-price="${item.today}">
+                     ${item.crop} (₹${item.today}/Quintal)
+                 </option>`
+             ).join('');
+
+
+            return `
+                <div class="grid lg:grid-cols-4 md:grid-cols-2 gap-6">
+                    
+                    <!-- Crop Disease Diagnosis -->
+                    <div class="bg-white p-6 card rounded-xl">
+                        <h3 class="text-xl font-bold text-indigo-700 mb-4 flex items-center">
+                            <span class="text-3xl mr-2">🔬</span> Crop Disease Diagnosis
+                        </h3>
+                        <p class="text-gray-600 mb-6 text-sm">Describe symptoms to get probable disease diagnosis and immediate remedy recommendations.</p>
+                        <form id="diagnosis-form" onsubmit="event.preventDefault(); window.diagnoseCropIssue(this)">
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="diagnosis-crop" class="block text-sm font-medium text-gray-700 mb-1">Select Affected Crop</label>
+                                    <select id="diagnosis-crop" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                                        <option value="">-- Choose Crop --</option>
+                                        ${cropOptions}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="symptoms" class="block text-sm font-medium text-gray-700 mb-1">Describe Symptoms</label>
+                                    <input type="text" id="symptoms" required placeholder="e.g., yellow spots on leaves, rotting roots" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+                            <button type="submit" id="diagnosis-btn" class="w-full px-4 py-3 mt-4 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition shadow-lg flex items-center justify-center">
+                                <span id="diagnosis-text">✨ Diagnose & Find Remedy</span>
+                                <div id="diagnosis-spinner" class="hidden ml-2 w-5 h-5 border-2 border-white rounded-full loading-spinner"></div>
+                            </button>
+                        </form>
+                        <div id="diagnosis-output" class="mt-4 pt-4 border-t border-gray-100 hidden">
+                            <!-- Diagnosis result will be inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Fertilizer Recommendation Tool -->
+                    <div class="bg-white p-6 card rounded-xl">
+                        <h3 class="text-xl font-bold text-teal-700 mb-4 flex items-center">
+                            <span class="text-3xl mr-2">🧪</span> Fertilizer Advisor
+                        </h3>
+                        <p class="text-gray-600 mb-6 text-sm">Get accurate NPK ratio and timing advice based on your crop and soil type.</p>
+                        <form id="fertilizer-form" onsubmit="event.preventDefault(); window.getFertilizerRecommendation(this)">
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="fertilizer-crop" class="block text-sm font-medium text-gray-700 mb-1">Select Crop</label>
+                                    <select id="fertilizer-crop" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white">
+                                        <option value="">-- Choose Crop --</option>
+                                        ${cropOptions}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="soil-type" class="block text-sm font-medium text-gray-700 mb-1">Select Soil Type</label>
+                                    <select id="soil-type" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 bg-white">
+                                        <option value="">-- Choose Soil Type --</option>
+                                        <option value="Black Soil">Black (Regur) Soil</option>
+                                        <option value="Alluvial Soil">Alluvial Soil</option>
+                                        <option value="Red Soil">Red Soil</option>
+                                        <option value="Laterite Soil">Laterite Soil</option>
+                                        <option value="Sandy Soil">Sandy/Desert Soil</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" id="fertilizer-btn" class="w-full px-4 py-3 mt-4 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition shadow-lg flex items-center justify-center">
+                                <span id="fertilizer-text">✨ Get NPK Recommendation</span>
+                                <div id="fertilizer-spinner" class="hidden ml-2 w-5 h-5 border-2 border-white rounded-full loading-spinner"></div>
+                            </button>
+                        </form>
+                        <div id="fertilizer-output" class="mt-4 pt-4 border-t border-gray-100 hidden">
+                            <!-- Fertilizer result will be inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Crop Loan Advisor -->
+                    <div class="bg-indigo-50 p-6 card rounded-xl shadow-lg">
+                        <h3 class="text-xl font-bold text-indigo-700 mb-4 flex items-center">
+                            <span class="text-2xl mr-2">💰</span> Crop Loan Advisor
+                        </h3>
+                        <p class="text-gray-600 mb-4 text-sm">Estimate revenue & get a loan recommendation based on current Mandi prices.</p>
+                        <form id="loan-calculator-form" onsubmit="event.preventDefault(); window.calculateLoanRecommendation(this)">
+                            <label for="loan-crop" class="block text-sm font-medium text-gray-700 mb-1">Select Expected Crop</label>
+                            <select id="loan-crop" required class="w-full px-3 py-2 border rounded-lg mb-3 bg-white">
+                                <option value="">-- Select Crop --</option>
+                                ${loanCropOptions}
+                            </select>
+                            
+                            <label for="expected-yield" class="block text-sm font-medium text-gray-700 mb-1">Expected Yield (Quintals)</label>
+                            <input type="number" id="expected-yield" placeholder="Enter Quintals" required class="w-full px-3 py-2 border rounded-lg mb-4" min="1">
+                            
+                            <button type="submit" id="loan-btn" class="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition shadow-lg flex items-center justify-center">
+                                <span id="loan-text">✨ Get Loan Recommendation</span>
+                                <div id="loan-spinner" class="hidden ml-2 w-5 h-5 border-2 border-white rounded-full loading-spinner"></div>
+                            </button>
+                        </form>
+                        
+                        <div id="loan-output" class="mt-4 pt-4 border-t border-gray-100 hidden">
+                             <h4 class="text-lg font-bold text-indigo-600 mb-2">Loan Advisory:</h4>
+                             <div id="loan-content" class="bg-white p-3 rounded-lg border text-sm whitespace-pre-wrap text-gray-700"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Storage & Pest Prevention Guide (NEW LLM FEATURE) -->
+                    <div class="bg-white p-6 card rounded-xl">
+                        <h3 class="text-xl font-bold text-purple-700 mb-4 flex items-center">
+                            <span class="text-3xl mr-2">📦</span> Storage Guide
+                        </h3>
+                        <p class="text-gray-600 mb-6 text-sm">Get advice on optimal storage conditions and pest prevention for harvested crops.</p>
+                        <form id="storage-guide-form" onsubmit="event.preventDefault(); window.getStorageGuide(this)">
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="storage-crop" class="block text-sm font-medium text-gray-700 mb-1">Select Crop for Storage</label>
+                                    <select id="storage-crop" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 bg-white">
+                                        <option value="">-- Choose Crop --</option>
+                                        ${cropOptions}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="storage-duration" class="block text-sm font-medium text-gray-700 mb-1">Intended Storage Duration</label>
+                                    <select id="storage-duration" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 bg-white">
+                                        <option value="">-- Select Duration --</option>
+                                        <option value="Short-term (1-3 months)">Short-term (1-3 months)</option>
+                                        <option value="Medium-term (3-6 months)">Medium-term (3-6 months)</option>
+                                        <option value="Long-term (6+ months)">Long-term (6+ months)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" id="storage-btn" class="w-full px-4 py-3 mt-4 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition shadow-lg flex items-center justify-center">
+                                <span id="storage-text">✨ Generate Storage Guide</span>
+                                <div id="storage-spinner" class="hidden ml-2 w-5 h-5 border-2 border-white rounded-full loading-spinner"></div>
+                            </button>
+                        </form>
+                        <div id="storage-output" class="mt-4 pt-4 border-t border-gray-100 hidden">
+                            <!-- Storage guide result will be inserted here -->
+                        </div>
+                    </div>
+                
+                    <!-- Machinery Cost Estimator (NEW LLM FEATURE 12) -->
+                    <div class="bg-yellow-50 p-6 card rounded-xl col-span-full md:col-span-2 lg:col-span-4 mx-auto w-full max-w-xl">
+                        <h3 class="text-xl font-bold text-yellow-700 mb-4 flex items-center justify-center">
+                            <span class="text-3xl mr-2">🚜</span> Machinery Cost Estimator
+                        </h3>
+                        <p class="text-gray-600 mb-4 text-sm text-center">Estimate rental costs for machinery in your region (Aurangabad) and get rent vs. buy advice.</p>
+                        <form id="machinery-cost-form" onsubmit="event.preventDefault(); window.getMachineryCost(this)">
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="task-type" class="block text-sm font-medium text-gray-700 mb-1">Select Agricultural Task</label>
+                                    <select id="task-type" required class="w-full px-4 py-2 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500 bg-white">
+                                        <option value="">-- Choose Task --</option>
+                                        <option value="Tractor Plowing (Deep Tillage)">Tractor Plowing (Deep Tillage)</option>
+                                        <option value="Rotavator/Cultivator (Secondary Tillage)">Rotavator/Cultivator (Secondary Tillage)</option>
+                                        <option value="Seed Sowing (using Seed Drill)">Seed Sowing (using Seed Drill)</option>
+                                        <option value="Harvester Combine Operations">Harvester Combine Operations</option>
+                                        <option value="Spraying Pesticides/Fertilizers (Tractor Mounted)">Spraying Pesticides/Fertilizers</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="land-size" class="block text-sm font-medium text-gray-700 mb-1">Land Size (Acres)</label>
+                                    <input type="number" id="land-size" placeholder="Enter Acres to be worked" required class="w-full px-4 py-2 border rounded-lg focus:ring-yellow-500 focus:border-yellow-500" min="0.1">
+                                </div>
+                            </div>
+                            <button type="submit" id="machinery-btn" class="w-full px-4 py-3 mt-4 bg-yellow-600 text-white font-semibold rounded-lg hover:bg-yellow-700 transition shadow-lg flex items-center justify-center">
+                                <span id="machinery-text">✨ Estimate Cost & Advice</span>
+                                <div id="machinery-spinner" class="hidden ml-2 w-5 h-5 border-2 border-white rounded-full loading-spinner"></div>
+                            </button>
+                        </form>
+                        <div id="machinery-output" class="mt-4 pt-4 border-t border-gray-100 hidden">
+                            <!-- Machinery cost result will be inserted here -->
+                        </div>
+                    </div>
+                    
+                </div>
+            `;
+        }
+
+        // --- GEMINI FEATURE J: STORAGE & PEST PREVENTION GUIDE ---
+        window.getStorageGuide = async function(form) {
+            const crop = document.getElementById('storage-crop').value;
+            const duration = document.getElementById('storage-duration').value;
+            
+            const btn = document.getElementById('storage-btn');
+            const btnText = document.getElementById('storage-text');
+            const spinner = document.getElementById('storage-spinner');
+            const outputDiv = document.getElementById('storage-output');
+
+            const systemPrompt = `You are an expert in post-harvest technology and grain storage methods suitable for rural India. Given the crop and storage duration, provide a detailed guide. Structure your output clearly with bold titles: **1. Ideal Conditions (Temp/Humidity)**, **2. Recommended Storage Structure/Method**, and **3. Essential Pest Prevention**. Use clear, practical language.`;
+            
+            const userQuery = `Crop: ${crop}. Intended Storage Duration: ${duration}. Provide a comprehensive storage and pest prevention guide.`;
+
+            btnText.textContent = 'Generating Guide...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            outputDiv.classList.remove('hidden');
+            outputDiv.innerHTML = '<p class="text-center text-purple-500">Consulting post-harvest management protocols...</p>';
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, true); // Use Google Search grounding for accurate protocols
+
+                let outputHtml = response.text.replace(/\n/g, '<br>'); // Preserve line breaks
+                
+                outputDiv.innerHTML = `
+                    <h4 class="text-lg font-bold text-purple-700 mb-2">Storage Guide for ${crop} (${duration}):</h4>
+                    <p class="text-gray-700">${outputHtml}</p>
+                `;
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error) {
+                console.error("Gemini API Storage Guide Error:", error);
+                outputDiv.innerHTML = `<p class="text-red-500">❌ Error generating guide. Please try again.</p>`;
+            } finally {
+                btnText.textContent = '✨ Generate Storage Guide';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        
+        // --- END GEMINI FEATURE J ---
+
+
+        // --- GEMINI FEATURE I: FERTILIZER RECOMMENDATION ---
+        window.getFertilizerRecommendation = async function(form) {
+            const crop = document.getElementById('fertilizer-crop').value;
+            const soilType = document.getElementById('soil-type').value;
+            
+            const btn = document.getElementById('fertilizer-btn');
+            const btnText = document.getElementById('fertilizer-text');
+            const spinner = document.getElementById('fertilizer-spinner');
+            const outputDiv = document.getElementById('fertilizer-output');
+
+            const systemPrompt = `You are a top Indian agricultural scientist specializing in soil nutrition. Given the crop and soil type, provide precise, actionable recommendations for NPK (Nitrogen, Phosphorus, Potassium) ratio and application timing. Use short, clear bullet points and keep quantities practical for a farmer in India. Structure your output clearly with bold titles: **1. Recommended NPK Ratio**, **2. Application Timing (Stages)**, and **3. Notes on Soil Type**.`;
+            
+            const userQuery = `Crop: ${crop}. Soil Type: ${soilType}. Please provide an NPK ratio and timing recommendations for a farmer in India.`;
+
+            btnText.textContent = 'Analyzing Soil...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            outputDiv.classList.remove('hidden');
+            outputDiv.innerHTML = '<p class="text-center text-teal-500">Consulting soil science database for recommendation...</p>';
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, true); // Use Google Search grounding for up-to-date recommendations
+
+                let outputHtml = response.text.replace(/\n/g, '<br>'); // Preserve line breaks
+                
+                outputDiv.innerHTML = `
+                    <h4 class="text-lg font-bold text-teal-700 mb-2">Fertilizer Plan for ${crop}:</h4>
+                    <p class="text-gray-700">${outputHtml}</p>
+                `;
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error) {
+                console.error("Gemini API Fertilizer Error:", error);
+                outputDiv.innerHTML = `<p class="text-red-500">❌ Error getting recommendation. Please try again.</p>`;
+            } finally {
+                btnText.textContent = '✨ Get NPK Recommendation';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        
+        // --- END GEMINI FEATURE I ---
+
+
+        // --- GEMINI FEATURE D: CROP DISEASE DIAGNOSIS ---
+        window.diagnoseCropIssue = async function(form) {
+            const crop = document.getElementById('diagnosis-crop').value;
+            const symptoms = document.getElementById('symptoms').value;
+            
+            const btn = document.getElementById('diagnosis-btn');
+            const btnText = document.getElementById('diagnosis-text');
+            const spinner = document.getElementById('diagnosis-spinner');
+            const outputDiv = document.getElementById('diagnosis-output');
+
+            const systemPrompt = `You are a highly experienced Indian plant pathologist. Analyze the provided crop and symptoms. Provide a clear, structured response containing the most probable disease, common causes, and recommended remedies. Structure the output clearly using bold titles: **1. Probable Disease**, **2. Recommended Organic Remedy**, and **3. Recommended Chemical Remedy**. Keep the remedies practical and concise.`;
+            
+            const userQuery = `Crop: ${crop}. Symptoms observed: ${symptoms}. Please provide a probable diagnosis and suggested remedies for a farmer in India.`;
+
+            btnText.textContent = 'Diagnosing...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            outputDiv.classList.remove('hidden');
+            outputDiv.innerHTML = '<p class="text-center text-indigo-500">Consulting plant pathology database for diagnosis...</p>';
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, true); // Use Google Search grounding for up-to-date remedies
+
+                let outputHtml = response.text.replace(/\n/g, '<br>'); // Preserve line breaks
+                
+                outputDiv.innerHTML = `
+                    <h4 class="text-lg font-bold text-red-700 mb-2">Diagnosis Result for ${crop}:</h4>
+                    <p class="text-gray-700">${outputHtml}</p>
+                `;
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error) {
+                console.error("Gemini API Diagnosis Error:", error);
+                outputDiv.innerHTML = `<p class="text-red-500">❌ Error in diagnosis. Please try again or refine your symptoms.</p>`;
+            } finally {
+                btnText.textContent = '✨ Diagnose & Find Remedy';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        // --- END GEMINI FEATURE D ---
+        
+        // --- GEMINI FEATURE L: MACHINERY COST ESTIMATOR (NEW) ---
+        window.getMachineryCost = async function(form) {
+            const taskType = document.getElementById('task-type').value;
+            const landSize = document.getElementById('land-size').value;
+            
+            const btn = document.getElementById('machinery-btn');
+            const btnText = document.getElementById('machinery-text');
+            const spinner = document.getElementById('machinery-spinner');
+            const outputDiv = document.getElementById('machinery-output');
+
+            const systemPrompt = `You are a regional agricultural machinery cost consultant for the Maharashtra region, specifically near Aurangabad (Chhatrapati Sambhajinagar). Estimate the rental cost for the selected task per acre, and then calculate the total estimated cost for the given land size. Finally, provide brief advice (1-2 sentences) on whether renting or owning the machine is more economical for this land size (e.g., Owning is viable for >20 acres). Structure your response clearly with bold titles: **1. Estimated Rental Cost**, **2. Total Estimated Expense**, and **3. Rent vs. Buy Advice**. Use Rupees (₹) clearly.`;
+            
+            const userQuery = `Task: ${taskType}. Land Size: ${landSize} acres. Estimate the cost and give rent vs. buy advice for a farmer in Maharashtra.`;
+
+            btnText.textContent = 'Estimating Costs...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            outputDiv.classList.remove('hidden');
+            outputDiv.innerHTML = '<p class="text-center text-yellow-500">Consulting regional machinery costs database...</p>';
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, true); // Use Google Search grounding for current regional rates
+
+                let outputHtml = response.text.replace(/\n/g, '<br>'); // Preserve line breaks
+                
+                outputDiv.innerHTML = `
+                    <h4 class="text-lg font-bold text-yellow-700 mb-2">Cost Analysis for ${taskType}:</h4>
+                    <p class="text-gray-700">${outputHtml}</p>
+                `;
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error) {
+                console.error("Gemini API Machinery Cost Error:", error);
+                outputDiv.innerHTML = `<p class="text-red-500">❌ Error generating cost estimate. Please try again.</p>`;
+            } finally {
+                btnText.textContent = '✨ Estimate Cost & Advice';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        // --- END GEMINI FEATURE L ---
+
+        window.createWeatherPage = function() {
+            const allCrops = ["Soybean", "Wheat", "Bajra", "Potato", "Onion", "Sugarcane", "Cotton", "Tomato"];
+            const cropOptions = allCrops.map(crop => `<option value="${crop}">${crop}</option>`).join('');
+
+            return `
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white p-8 card rounded-xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-lime-700 mb-4 flex items-center">
+                            <span class="text-4xl mr-2">📍</span> Weather in ${DEFAULT_LOCATION_NAME}
+                        </h3>
+                        <div id="weather-display" class="space-y-4">
+                            <p class="text-lg text-gray-500" id="weather-status">Fetching live weather data...</p>
+                        </div>
+                        
+                        <button id="advisory-btn" onclick="window.generateCropAdvisory()" class="mt-6 w-full px-4 py-3 bg-yellow-500 text-lime-900 font-semibold rounded-lg hover:bg-yellow-600 transition shadow-lg flex items-center justify-center">
+                            <span id="advisory-button-text">✨ Get Smart Crop Advisory</span>
+                            <div id="advisory-spinner" class="hidden ml-2 w-5 h-5 border-2 border-white rounded-full loading-spinner"></div>
+                        </button>
+                    </div>
+                    
+                    <div class="bg-lime-50 p-6 card rounded-xl shadow-lg">
+                        <h3 class="text-xl font-semibold text-lime-700 mb-4">Tips for Current Conditions</h3>
+                        <p id="weather-tip" class="text-gray-600">Tips will appear here after weather data is fetched.</p>
+                    </div>
+                </div>
+                
+                <div id="crop-advisory-section" class="mt-8 hidden">
+                    <h3 class="text-2xl font-bold text-indigo-700 mb-4">✨ AI-Powered Crop Advisory</h3>
+                    <div id="crop-advisory-content" class="bg-white p-6 card rounded-xl shadow-lg text-gray-700">
+                        <!-- Advisory content will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- NEW: Irrigation Schedule Feature (LLM 11) -->
+                <div class="bg-indigo-50 p-6 card rounded-xl shadow-lg mt-6">
+                    <h3 class="text-xl font-bold text-indigo-700 mb-4 flex items-center">
+                        <span class="text-3xl mr-2">💧</span> Optimized Irrigation Schedule
+                    </h3>
+                    <form id="irrigation-form" onsubmit="event.preventDefault(); window.generateIrrigationSchedule(this)">
+                        <label for="irrigation-crop" class="block text-sm font-medium text-gray-700 mb-1">Select Crop</label>
+                        <select id="irrigation-crop" required class="w-full px-4 py-2 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                            <option value="">-- Choose Crop --</option>
+                            ${cropOptions}
+                        </select>
+                        <button type="submit" id="irrigation-btn" class="w-full px-4 py-3 mt-4 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition shadow-lg flex items-center justify-center">
+                            <span id="irrigation-text">✨ Get Irrigation Schedule</span>
+                            <div id="irrigation-spinner" class="hidden ml-2 w-5 h-5 border-2 border-white rounded-full loading-spinner"></div>
+                        </button>
+                    </form>
+                    <div id="irrigation-output" class="mt-4 pt-4 border-t border-gray-100 hidden">
+                        <!-- Irrigation advice will be inserted here -->
+                    </div>
+                </div>
+                <!-- END Irrigation Schedule Feature -->
+
+
+                <!-- NEW: 8-Day Forecast Table and Chart -->
+                <div id="forecast-section" class="mt-8">
+                    <h3 class="text-2xl font-bold text-lime-800 mb-4">8-Day Forecast (Long-Term Planning)</h3>
+                    
+                    <!-- Chart Container -->
+                    <div id="temperature-chart-container" class="bg-white card rounded-xl p-4 mb-6">
+                        <h4 class="text-lg font-semibold text-gray-700 mb-3">Daily Temperature Trend (Max/Min °C)</h4>
+                        <div id="temperature-chart" class="h-64">
+                            <p class="text-center text-gray-500">Loading chart data...</p>
+                        </div>
+                        <div class="flex justify-center text-sm mt-2 space-x-4">
+                            <span class="text-red-500 font-semibold flex items-center"><span class="inline-block w-3 h-0.5 bg-red-500 mr-1"></span> Max Temp</span>
+                            <span class="text-blue-500 font-semibold flex items-center"><span class="inline-block w-3 h-0.5 bg-blue-500 mr-1"></span> Min Temp</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Table Container -->
+                    <div id="forecast-table-container" class="overflow-x-auto bg-white card rounded-xl p-4">
+                        <p class="text-center text-gray-500">Fetching detailed forecast...</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Helper function to map Visual Crossing icon names to simple text/emoji
+        function getWeatherIcon(condition) {
+            const icons = {
+                'clear-day': '☀️',
+                'clear-night': '🌙',
+                'rain': '🌧️',
+                'snow': '🌨️',
+                'sleet': '🌨️',
+                'wind': '🌬️',
+                'fog': '🌫️',
+                'cloudy': '☁️',
+                'partly-cloudy-day': '🌤️',
+                'partly-cloudy-night': '☁️',
+                'thunderstorm': '⛈️',
+                'broken-clouds': '🌥️',
+                'scattered-clouds': '☁️',
+                'isolated-tstorms': '⛈️',
+                'passing-showers': '☔',
+                'a-few-tstorms': '⛈️',
+                'tstorms-late': '⛈️',
+                'mostly-sunny': '🌤️',
+                'sunny': '☀️',
+                'afternoon-clouds': '⛅'
+            };
+            // Clean up the input string and look up the icon
+            return icons[condition.toLowerCase().replace(/\s|-/g, '-')] || '❓';
+        }
+
+        // --- NEW: RENDER TEMPERATURE CHART (SVG) ---
+        window.renderTemperatureChart = function(forecastDays) {
+            const chartDiv = document.getElementById('temperature-chart');
+            if (!chartDiv || forecastDays.length < 2) return;
+
+            // Use only the first 5 days for a clean chart display
+            const data = forecastDays.slice(0, 5);
+            
+            // Get min/max overall temperatures to normalize the chart height
+            const maxTemp = Math.max(...data.map(d => d.tempmax));
+            const minTemp = Math.min(...data.map(d => d.tempmin));
+            
+            const chartHeight = 256; // Fixed height in pixels (h-64 Tailwind class)
+            const padding = 20;
+            const yRange = (maxTemp - minTemp) || 1; 
+            const yOffset = minTemp; 
+            
+            // Normalize temperature value (0 to 1) for SVG scaling
+            const normalize = (temp) => ((temp - yOffset) / yRange);
+            
+            // Calculate SVG Y-coordinate (0 is top of the chart)
+            const getY = (temp) => chartHeight - padding - (normalize(temp) * (chartHeight - 2 * padding));
+            
+            const dayWidth = (100 / (data.length - 1));
+
+            // Generate SVG path points (e.g., "M 0 100 L 25 120 L 50 80...")
+            const maxPoints = data.map((d, i) => {
+                const x = i * dayWidth;
+                const y = getY(d.tempmax);
+                return `${i === 0 ? 'M' : 'L'} ${x}% ${y}`;
+            }).join(' ');
+
+            const minPoints = data.map((d, i) => {
+                const x = i * dayWidth;
+                const y = getY(d.tempmin);
+                return `${i === 0 ? 'M' : 'L'} ${x}% ${y}`;
+            }).join(' ');
+            
+            // Generate circles (data points) and labels
+            let markersHtml = '';
+            let labelHtml = '';
+
+            data.forEach((d, i) => {
+                const x = i * dayWidth;
+                const yMax = getY(d.tempmax);
+                const yMin = getY(d.tempmin);
+                const dayLabel = new Date(d.datetimeEpoch * 1000).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' });
+
+                // Max Temp Marker
+                markersHtml += `<circle cx="${x}%" cy="${yMax}" r="4" fill="#ef4444" stroke="#ffffff" stroke-width="2"><title>Max: ${d.tempmax.toFixed(0)}°C</title></circle>`;
+                markersHtml += `<text x="${x}%" y="${yMax - 10}" text-anchor="middle" font-size="12" fill="#ef4444" font-weight="bold">${d.tempmax.toFixed(0)}°</text>`;
+
+                // Min Temp Marker
+                markersHtml += `<circle cx="${x}%" cy="${yMin}" r="4" fill="#3b82f6" stroke="#ffffff" stroke-width="2"><title>Min: ${d.tempmin.toFixed(0)}°C</title></circle>`;
+                markersHtml += `<text x="${x}%" y="${yMin + 20}" text-anchor="middle" font-size="12" fill="#3b82f6" font-weight="bold">${d.tempmin.toFixed(0)}°</text>`;
+                
+                // Day Label
+                labelHtml += `<text x="${x}%" y="${chartHeight}" text-anchor="middle" font-size="12" fill="#6b7280" font-weight="600">${dayLabel}</text>`;
+            });
+
+
+            chartDiv.innerHTML = `
+                <svg viewBox="0 0 100 ${chartHeight}" preserveAspectRatio="none" class="w-full h-full">
+                    <!-- Background Grid (Optional) -->
+                    <line x1="0%" y1="${getY(maxTemp)}" x2="100%" y2="${getY(maxTemp)}" stroke="#e5e7eb" stroke-dasharray="3 3"/>
+                    <line x1="0%" y1="${getY(minTemp)}" x2="100%" y2="${getY(minTemp)}" stroke="#e5e7eb" stroke-dasharray="3 3"/>
+                    
+                    <!-- Max Temp Line -->
+                    <path d="${maxPoints}" class="max-temp-line"/>
+                    <!-- Min Temp Line -->
+                    <path d="${minPoints}" class="min-temp-line"/>
+                    
+                    <!-- Data Points and Labels -->
+                    ${markersHtml}
+                    <!-- X-Axis Labels -->
+                    ${labelHtml}
+                </svg>
+            `;
+        }
+
+        // --- NEW: RENDER FORECAST TABLE ---
+        window.renderForecast = function(forecastDays) {
+            const container = document.getElementById('forecast-table-container');
+            if (!container) return;
+            
+            if (!forecastDays || forecastDays.length === 0) {
+                 container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load the detailed forecast data.</p>`;
+                 return;
+            }
+
+            // Map the API data to table rows
+            const tableRows = forecastDays.map((day, index) => {
+                // Use "Today" for the first day, otherwise use the short date format
+                const dateOptions = { weekday: 'short', month: 'short', day: 'numeric' };
+                // DYNAMIC DATE FIX: Use the calculated datetimeEpoch
+                const dateLabel = index === 0 
+                    ? 'Today' 
+                    : new Date(day.datetimeEpoch * 1000).toLocaleDateString('en-IN', dateOptions);
+
+                const icon = getWeatherIcon(day.icon || day.conditions);
+                const precip = day.precip ? `${day.precip.toFixed(1)} mm` : '0.0 mm';
+                const wind = day.windspeed ? `${day.windspeed.toFixed(0)} km/h` : 'N/A';
+                const trendArrow = day.tempmax > day.tempmin ? '↑' : (day.tempmax < day.tempmin ? '↓' : '—');
+
+                return `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">${dateLabel}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700 font-semibold">
+                            ${day.tempmax.toFixed(1)} / ${day.tempmin.toFixed(1)} °C
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700 flex items-center">
+                            <span class="text-lg mr-2">${icon}</span> ${day.conditions}
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${day.feelslike.toFixed(0)} °C</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${wind} ${trendArrow}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${day.humidity.toFixed(0)}%</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${precip}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${day.uvindex}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
+                             ${day.sunrise.substring(0, 5)} / ${day.sunset.substring(0, 5)}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-lime-100 sticky top-0">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-bold text-lime-800 uppercase">Date</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold text-lime-800 uppercase">Temp (Max/Min)</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold text-lime-800 uppercase">Conditions</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold text-lime-800 uppercase">Feels Like</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold text-lime-800 uppercase">Wind</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold text-lime-800 uppercase">Humidity</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold text-lime-800 uppercase">Precip. (mm)</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold text-lime-800 uppercase">UV</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold text-lime-800 uppercase">Sun</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        ${tableRows}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // --- GEMINI FEATURE A: SMART CROP ADVISORY (Weather Page) ---
+        window.generateCropAdvisory = async function() {
+            const advisoryBtn = document.getElementById('advisory-btn');
+            const advisoryBtnText = document.getElementById('advisory-button-text');
+            const advisorySpinner = document.getElementById('advisory-spinner');
+            const advisorySection = document.getElementById('crop-advisory-section');
+            const advisoryContent = document.getElementById('crop-advisory-content');
+            
+            if (!window.currentWeatherData) {
+                window.showToast("Please wait for live weather data to load first.");
+                return;
+            }
+
+            // Use fixed default crops since registration is removed
+            const crops = window.defaultCrops.join(', ');
+            const location = window.currentWeatherData.city;
+            // FIXED: Use wind speed in km/h which is available in window.currentWeatherData.wind
+            const weather = `${window.currentWeatherData.description} with a temperature of ${window.currentWeatherData.temp.toFixed(1)}°C and wind speed of ${window.currentWeatherData.wind.toFixed(1)} km/h.`;
+
+            const systemPrompt = `You are a highly experienced agricultural scientist in India. Your task is to provide concise, actionable farming advice. The tone should be authoritative yet encouraging. Do not use markdown headers (#).`;
+            
+            const userQuery = `Given the location ${location}, and the main regional crops are ${crops}, provide specific and actionable advice on farming activities (e.g., irrigation, pest control, harvesting) based on the current weather: ${weather}. Use a clear bulleted list format.`;
+
+            advisoryBtnText.textContent = 'Generating...';
+            advisorySpinner.classList.remove('hidden');
+            advisoryBtn.disabled = true;
+            advisoryContent.innerHTML = '<p class="text-center text-indigo-500">Consulting the agricultural network for the best advice...</p>';
+            advisorySection.classList.remove('hidden');
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, true); // Use Google Search grounding
+
+                let outputHtml = response.text.replace(/\n/g, '<br>'); // Preserve line breaks
+                
+                if (response.sources.length > 0) {
+                    const sourceList = response.sources.map(s => 
+                        `<a href="${s.uri}" target="_blank" class="text-xs text-indigo-500 hover:text-indigo-700 block">${s.title}</a>`
+                    ).join('');
+                    outputHtml += `<div class="mt-4 pt-4 border-t border-gray-100">
+                                       <p class="text-sm font-semibold mb-1">Sources for Advice:</p>
+                                       ${sourceList}
+                                   </div>`;
+                }
+
+                advisoryContent.innerHTML = outputHtml;
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                advisoryContent.innerHTML = `<p class="text-red-500">❌ Error generating advisory. Please check the console for API details.</p>`;
+            } finally {
+                advisoryBtnText.textContent = '✨ Get Smart Crop Advisory';
+                advisorySpinner.classList.add('hidden');
+                advisoryBtn.disabled = false;
+            }
+        }
+        
+        // --- GEMINI FEATURE K: OPTIMIZED IRRIGATION SCHEDULE (Weather Page) ---
+        window.generateIrrigationSchedule = async function(form) {
+            const crop = document.getElementById('irrigation-crop').value;
+            
+            if (!window.currentWeatherData) {
+                window.showToast("Please wait for live weather data to load before checking the schedule.");
+                return;
+            }
+
+            const { temp, description, wind } = window.currentWeatherData;
+            const weather = `${description} with temperature ${temp.toFixed(1)}°C and wind speed ${wind.toFixed(1)} km/h.`;
+            
+            const btn = document.getElementById('irrigation-btn');
+            const btnText = document.getElementById('irrigation-text');
+            const spinner = document.getElementById('irrigation-spinner');
+            const outputDiv = document.getElementById('irrigation-output');
+
+            const systemPrompt = `You are a specialist in agricultural water management and irrigation scheduling for Indian farmers. Given the crop and current weather conditions, provide a highly specific and optimized irrigation schedule (frequency and amount) for the next 7 days. Use practical and clear language. Structure your response clearly with bold titles: **1. Immediate Action (Today/Tomorrow)**, **2. Recommended Schedule (Next 7 Days)**, and **3. Water Conservation Tip**.`;
+            
+            const userQuery = `Crop: ${crop}. Current Weather: ${weather}. Provide an optimized irrigation schedule and advice.`;
+
+            btnText.textContent = 'Analyzing Water Needs...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            outputDiv.classList.remove('hidden');
+            outputDiv.innerHTML = '<p class="text-center text-indigo-500">Consulting irrigation specialists for schedule...</p>';
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, true); // Use Google Search grounding for scientific and regional best practices
+
+                let outputHtml = response.text.replace(/\n/g, '<br>');
+                
+                outputDiv.innerHTML = `
+                    <h4 class="text-lg font-bold text-indigo-700 mb-2">Irrigation Schedule for ${crop}:</h4>
+                    <p class="text-gray-700">${outputHtml}</p>
+                `;
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error) {
+                console.error("Gemini API Irrigation Error:", error);
+                outputDiv.innerHTML = `<p class="text-red-500">❌ Error generating schedule. Please try again.</p>`;
+            } finally {
+                btnText.textContent = '✨ Get Irrigation Schedule';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        // --- END GEMINI FEATURE K ---
+
+
+        // --- STATIC FETCH WEATHER (REPLACED API CALL) ---
+        window.fetchWeather = async function() {
+            const weatherDisplay = document.getElementById('weather-display');
+            const weatherTip = document.getElementById('weather-tip');
+            const chartDiv = document.getElementById('temperature-chart');
+
+            // This function is called on page load, but the elements might not exist
+            // if the user is not on the weather page. Add a null check.
+            if (!weatherDisplay || !weatherTip || !chartDiv) {
+                // If the elements aren't here, it just means we are on a different page.
+                // We'll call this again when the user navigates to the weather page.
+                // The only critical part is setting the global data for notifications.
+                
+                // Use a simplified version just to set global data if it's not set
+                if (!window.currentWeatherData) {
+                    // Static 8-Day Forecast Data for Chhatrapati Sambhajinagar (Oct 27 - Nov 3)
+                    const rawStaticData = [
+                        [ 31.0, 19.5, 'Broken clouds.', 25.0, 10.0, 50, 0.5, 6, '06:27', '17:56', 'broken-clouds', 31 ],
+                        [ 30.0, 18.0, 'Clear Night', 24.0, 9.0, 45, 0.0, 6, '06:27', '17:56', 'clear-night', 29 ],
+                        [ 31.5, 17.5, 'Sunny', 25.5, 11.0, 42, 0.0, 7, '06:28', '17:55', 'sunny', 30 ],
+                        [ 32.0, 18.0, 'Mostly Sunny', 26.0, 12.0, 40, 0.0, 7, '06:28', '17:54', 'mostly-sunny', 31 ],
+                        [ 32.5, 19.0, 'Partly Cloudy', 27.0, 13.0, 45, 0.0, 7, '06:29', '17:53', 'partly-cloudy-day', 32 ],
+                        [ 31.0, 20.0, 'Scattered Clouds', 25.0, 11.0, 55, 0.2, 6, '06:29', '17:53', 'scattered-clouds', 31 ],
+                        [ 30.0, 19.0, 'Light Rain Showers', 24.0, 14.0, 60, 2.1, 5, '06:30', '17:52', 'rain', 30 ],
+                        [ 31.0, 18.5, 'Clear Day', 25.0, 10.0, 50, 0.0, 7, '06:30', '17:51', 'clear-day', 30 ],
+                    ];
+                    
+                    const currentData = rawStaticData[0]; // Use first day
+                    
+                    window.currentWeatherData = {
+                        temp: currentData[3],
+                        description: currentData[2],
+                        city: DEFAULT_LOCATION_NAME,
+                        iconCode: currentData[10],
+                        wind: currentData[4] 
+                    };
+                }
+                return; // Exit if the page elements aren't visible
+            }
+
+            // Display loading states initially
+            weatherDisplay.innerHTML = `<p class="text-lg text-gray-500" id="weather-status">Loading static weather data...</p>`;
+            chartDiv.innerHTML = `<p class="text-center text-gray-500">Loading chart data...</p>`;
+            document.getElementById('advisory-btn').disabled = true;
+
+            // --- Updated Static 8-Day Forecast Data for Chhatrapati Sambhajinagar (Oct 27 - Nov 3) ---
+            const rawStaticData = [
+                // Max, Min, Cond, Temp (approx), Wind, Humidity, Precip, UV, Sunrise(H:M), Sunset(H:M), Icon, Feels Like
+                [ 31.0, 19.5, 'Broken clouds.', 25.0, 10.0, 50, 0.5, 6, '06:27', '17:56', 'broken-clouds', 31 ], // Day 1 (Oct 27)
+                [ 30.0, 18.0, 'Clear Night', 24.0, 9.0, 45, 0.0, 6, '06:27', '17:56', 'clear-night', 29 ], // Day 2 (Oct 28)
+                [ 31.5, 17.5, 'Sunny', 25.5, 11.0, 42, 0.0, 7, '06:28', '17:55', 'sunny', 30 ], // Day 3 (Oct 29)
+                [ 32.0, 18.0, 'Mostly Sunny', 26.0, 12.0, 40, 0.0, 7, '06:28', '17:54', 'mostly-sunny', 31 ], // Day 4 (Oct 30)
+                [ 32.5, 19.0, 'Partly Cloudy', 27.0, 13.0, 45, 0.0, 7, '06:29', '17:53', 'partly-cloudy-day', 32 ], // Day 5 (Oct 31)
+                [ 31.0, 20.0, 'Scattered Clouds', 25.0, 11.0, 55, 0.2, 6, '06:29', '17:53', 'scattered-clouds', 31 ], // Day 6 (Nov 1)
+                [ 30.0, 19.0, 'Light Rain Showers', 24.0, 14.0, 60, 2.1, 5, '06:30', '17:52', 'rain', 30 ], // Day 7 (Nov 2)
+                [ 31.0, 18.5, 'Clear Day', 25.0, 10.0, 50, 0.0, 7, '06:30', '17:51', 'clear-day', 30 ], // Day 8 (Nov 3)
+            ];
+            
+            // --- DATA TRANSFORMATION ---
+            const now = new Date(); // Use the actual current date
+            
+            const forecastDays = rawStaticData.map((data, index) => {
+                const date = new Date(now);
+                date.setDate(now.getDate() + index); // Shift date forward from TODAY
+                
+                return {
+                    datetimeEpoch: date.getTime() / 1000,
+                    tempmax: data[0],
+                    tempmin: data[1],
+                    conditions: data[2].trim(), // Clean up string data
+                    temp: data[3],
+                    windspeed: data[4],
+                    humidity: data[5],
+                    precip: data[6],
+                    uvindex: data[7],
+                    sunrise: data[8],
+                    sunset: data[9],
+                    icon: data[10],
+                    feelslike: data[11],
+                };
+            });
+            
+            // Use the first day's data as the "current" conditions
+            const currentData = forecastDays[0];
+
+            // --- RENDER CURRENT WEATHER ---
+            window.currentWeatherData = {
+                temp: currentData.temp,
+                description: currentData.conditions,
+                city: DEFAULT_LOCATION_NAME,
+                iconCode: currentData.icon,
+                wind: currentData.windspeed 
+            };
+            
+            const weatherIcon = getWeatherIcon(currentData.icon);
+            const isRaining = currentData.conditions.toLowerCase().includes('rain') || currentData.conditions.toLowerCase().includes('showers');
+
+            let tip = `The weather in ${window.currentWeatherData.city} is currently ${currentData.conditions}.`;
+            if (currentData.temp > 28) {
+                tip += " It's getting warm! Ensure your crops have adequate water and avoid field work during peak afternoon hours.";
+            } else if (isRaining || currentData.precip > 0) {
+                tip += " Rain expected today! Ensure drainage is clear and adjust irrigation schedules. Protect vulnerable harvests.";
+            } else {
+                tip += " Stable conditions expected. Monitor soil moisture levels and prepare for the next irrigation cycle.";
+            }
+
+            // Overwrite status with current data
+            weatherDisplay.innerHTML = `
+                <p class="text-5xl font-extrabold text-lime-800 flex items-center">${currentData.temp.toFixed(1)}°C <span class="text-4xl ml-2">${weatherIcon}</span></p>
+                <p class="text-xl font-medium text-gray-700 capitalize">${currentData.conditions} in ${window.currentWeatherData.city}</p>
+                <p class="text-lg text-gray-500">Humidity: ${currentData.humidity}% | Wind: ${currentData.windspeed.toFixed(1)} km/h</p>
+                <p class="text-sm font-semibold text-orange-500 mt-2">⭐ Displaying Static Forecast Data (API Disabled)</p>
+            `;
+            weatherTip.textContent = tip;
+            document.getElementById('advisory-btn').disabled = false;
+            
+            // RENDER THE CHART AND TABLE
+            window.renderTemperatureChart(forecastDays);
+            window.renderForecast(forecastDays);
+        }
+
+        // --- [END OF INSERTED CODE BLOCK] ---
+
+
+        // --- ALL MANDI PRICE DATA AND FUNCTIONS ---
+
+        // Static Mandi Data (15 entries)
+        const mandiData = [
+            // Grains
+            { crop: "Soybean", image: "🌱", today: 4500, yesterday: 4450 },
+            { crop: "Wheat", image: "🌾", today: 2300, yesterday: 2320 },
+            { crop: "Bajra", image: "🌾", today: 2150, yesterday: 2150 },
+            { crop: "Jowar (Sorghum)", image: "🌾", today: 2800, yesterday: 2780 },
+            { crop: "Toor Dal (Arhar)", image: "🍲", today: 11500, yesterday: 11550 },
+            // Vegetables
+            { crop: "Potato", image: "🥔", today: 1800, yesterday: 1800 },
+            { crop: "Onion", image: "🧅", today: 2500, yesterday: 2400 },
+            { crop: "Tomato", image: "🍅", today: 3000, yesterday: 3100 },
+            { crop: "Lady Finger (Okra)", image: "🍆", today: 3500, yesterday: 3450 },
+            { crop: "Green Chili", image: "🌶️", today: 4200, yesterday: 4200 },
+            { crop: "Cabbage", image: "🥬", today: 1500, yesterday: 1400 },
+            { crop: "Cauliflower", image: "🥦", today: 2200, yesterday: 2250 },
+            { crop: "Brinjal (Eggplant)", image: "🍆", today: 2100, yesterday: 2100 },
+            { crop: "Garlic", image: "🧄", today: 13000, yesterday: 12800 },
+            // Cash Crops
+            { crop: "Cotton (Lint)", image: "☁️", today: 7100, yesterday: 7150 },
+            { crop: "Sugarcane", image: "🎋", today: 340, yesterday: 340 }, // Note: Price per Ton, not Quintal
+        ];
+
+        window.createMandiPricesPage = function() {
+            return `
+                <div class="overflow-x-auto bg-white card rounded-xl shadow-lg p-4">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-lime-100">
+                            <tr>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-lime-800 uppercase">Crop</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-lime-800 uppercase">Price Today (₹/Qtl)</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-lime-800 uppercase">Price Yesterday (₹/Qtl)</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-lime-800 uppercase">Trend</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-lime-800 uppercase">Market Analysis</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-lime-800 uppercase">Sale Strategy</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-lime-800 uppercase">Global Market</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mandi-prices-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Data will be injected by renderMandiPrices -->
+                            <tr><td colspan="7" class="p-4 text-center text-gray-500">Loading price data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        // --- Helper function to render the Mandi table (now separate) ---
+        window.renderMandiPrices = function() {
+            const tbody = document.getElementById('mandi-prices-body');
+            
+            // CRITICAL FIX: Add null check and error logging
+            if (!tbody) {
+                console.error("Error: Mandi table body ('mandi-prices-body') not found in DOM.");
+                return; // Stop execution if the table isn't ready
+            }
+
+            const tableRows = mandiData.map(item => {
+                const trend = item.today > item.yesterday ? '↑' : (item.today < item.yesterday ? '↓' : '—');
+                const trendColor = item.today > item.yesterday ? 'text-green-600' : (item.today < item.yesterday ? 'text-red-600' : 'text-gray-500');
+                
+                // Create a URL-safe name for element IDs
+                const safeCropName = item.crop.replace(/[^a-zA-Z0-9]/g, '-');
+                
+                // Unique IDs for all elements
+                const analysisId = `analysis-${safeCropName}`;
+                const volatilityId = `volatility-${safeCropName}`;
+                const saleWindowId = `sale-window-${safeCropName}`;
+                const exportId = `export-${safeCropName}`;
+
+                return `
+                    <tr class="hover:bg-gray-50 align-top">
+                        <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <span class="text-xl mr-2">${item.image}</span> ${item.crop}
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm font-bold ${trendColor}">₹ ${item.today.toLocaleString('en-IN')}</td>
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500">₹ ${item.yesterday.toLocaleString('en-IN')}</td>
+                        <td class="px-3 py-3 whitespace-nowrap text-xl font-bold ${trendColor}">${trend}</td>
+                        
+                        <!-- Market Analysis Column (LLM Features) -->
+                        <td classimg-data-src="px-3 py-3 whitespace-nowrap text-sm text-gray-700 w-1/4 min-w-[250px]">
+                            <!-- Trend Analysis -->
+                            <button id="analyze-btn-analysis-${safeCropName}" onclick="window.analyzePriceTrend('${safeCropName}', ${item.today}, ${item.yesterday})" 
+                                    class="mb-2 w-full text-xs px-2 py-1 bg-blue-500 text-white font-semibold rounded-full hover:bg-blue-600 transition flex items-center justify-center">
+                                <span id="analyze-text-analysis-${safeCropName}">✨ Trend Outlook</span>
+                                <div id="analyze-spinner-analysis-${safeCropName}" class="hidden ml-2 w-3 h-3 border-2 border-white rounded-full loading-spinner"></div>
+                            </button>
+                            <div id="${analysisId}" class="text-xs text-blue-700 hidden mt-1 p-2 bg-blue-50 rounded-md"></div>
+                            
+                            <!-- Volatility Explainer -->
+                            <button id="analyze-btn-volatility-${safeCropName}" onclick="window.explainPriceVolatility('${safeCropName}', ${item.today}, ${item.yesterday})" 
+                                    class="w-full text-xs px-2 py-1 bg-yellow-500 text-yellow-900 font-semibold rounded-full hover:bg-yellow-600 transition flex items-center justify-center">
+                                <span id="analyze-text-volatility-${safeCropName}">✨ Explain Volatility</span>
+                                <div id="analyze-spinner-volatility-${safeCropName}" class="hidden ml-2 w-3 h-3 border-2 border-white rounded-full loading-spinner"></div>
+                            </button>
+                            <div id="${volatilityId}" class="text-xs text-yellow-700 hidden mt-1 p-2 bg-yellow-50 rounded-md"></div>
+                        </td>
+
+                        <!-- Sale Strategy Column (LLM Feature 13) -->
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 w-1/4 min-w-[250px]">
+                            <form onsubmit="event.preventDefault(); window.getSaleWindow('${safeCropName}', ${item.today}, this)" class="flex items-center space-x-2">
+                                <input type="number" id="stock-${safeCropName}" placeholder="Stock (Qtl)" min="1" required class="w-20 px-2 py-1 border rounded-md text-xs">
+                                <button type="submit" id="analyze-btn-sale-window-${safeCropName}" 
+                                        class="flex-1 text-xs px-2 py-1 bg-green-500 text-white font-semibold rounded-full hover:bg-green-600 transition flex items-center justify-center">
+                                    <span id="analyze-text-sale-window-${safeCropName}">✨ Sale Window</span>
+                                    <div id="analyze-spinner-sale-window-${safeCropName}" class="hidden ml-2 w-3 h-3 border-2 border-white rounded-full loading-spinner"></div>
+                                </button>
+                            </form>
+                            <div id="${saleWindowId}" class="text-xs text-green-700 hidden mt-1 p-2 bg-green-50 rounded-md"></div>
+                        </td>
+
+                        <!-- Export Viability Column (LLM Feature 14) -->
+                        <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700 w-1/4 min-w-[250px]">
+                            <form onsubmit="event.preventDefault(); window.getExportViability('${safeCropName}', this)" class="flex items-center space-x-2">
+                                <input type="number" id="surplus-${safeCropName}" placeholder="Surplus (Qtl)" min="1" required class="w-20 px-2 py-1 border rounded-md text-xs">
+                                <button type="submit" id="analyze-btn-export-${safeCropName}" 
+                                        class="flex-1 text-xs px-2 py-1 bg-purple-500 text-white font-semibold rounded-full hover:bg-purple-600 transition flex items-center justify-center">
+                                    <span id="analyze-text-export-${safeCropName}">✨ Export Viability</span>
+                                    <div id="analyze-spinner-export-${safeCropName}" class="hidden ml-2 w-3 h-3 border-2 border-white rounded-full loading-spinner"></div>
+                                </button>
+                            </form>
+                            <div id="${exportId}" class="text-xs text-purple-700 hidden mt-1 p-2 bg-purple-50 rounded-md"></div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            tbody.innerHTML = tableRows;
+        }
+
+        // --- GEMINI FEATURE C: MANDI PRICE TREND ANALYSIS ---
+        window.analyzePriceTrend = async function(cropName, priceToday, priceYesterday) {
+            const safeCropName = cropName.replace(/[^a-zA-Z0-9]/g, '-');
+            const btnId = `analyze-btn-analysis-${safeCropName}`;
+            const textId = `analyze-text-analysis-${safeCropName}`;
+            const spinnerId = `analyze-spinner-analysis-${safeCropName}`;
+            const outputId = `analysis-${safeCropName}`;
+            
+            // CRITICAL FIX: Get elements *after* IDs are defined
+            const btn = document.getElementById(btnId);
+            const btnText = document.getElementById(textId);
+            const spinner = document.getElementById(spinnerId);
+            const outputDiv = document.getElementById(outputId);
+            
+            // CRITICAL FIX: Add null checks
+            if (!btn || !btnText || !spinner || !outputDiv) {
+                console.error(`Missing elements for analyzePriceTrend: ${safeCropName}`);
+                window.showToast("System Error: Cannot run analysis.");
+                return;
+            }
+
+            const systemPrompt = `You are a concise agricultural market analyst. Given the crop and price change, provide a 1-2 sentence forecast for the short-term price trend (e.g., 'Prices are expected to rise further due to...'). Do not use markdown.`;
+            const userQuery = `Crop: ${cropName}. Today's Price: ₹${priceToday}. Yesterday's Price: ₹${priceYesterday}. Provide a short-term forecast.`;
+            
+            btnText.textContent = 'Analyzing...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            outputDiv.classList.remove('hidden');
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, false); // Grounding not needed for simple forecast
+
+                outputDiv.textContent = response.text;
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error) {
+                console.error("Gemini API Trend Error:", error);
+                outputDiv.textContent = "❌ Analysis failed.";
+            } finally {
+                // CRITICAL FIX: Restore button state
+                btnText.textContent = '✨ Trend Outlook';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        
+        // --- GEMINI FEATURE F: PRICE VOLATILITY EXPLAINER ---
+        window.explainPriceVolatility = async function(cropName, priceToday, priceYesterday) {
+            const safeCropName = cropName.replace(/[^a-zA-Z0-9]/g, '-');
+            const btnId = `analyze-btn-volatility-${safeCropName}`;
+            const textId = `analyze-text-volatility-${safeCropName}`;
+            const spinnerId = `analyze-spinner-volatility-${safeCropName}`;
+            const outputId = `volatility-${safeCropName}`;
+            
+            // CRITICAL FIX: Get elements
+            const btn = document.getElementById(btnId);
+            const btnText = document.getElementById(textId);
+            const spinner = document.getElementById(spinnerId);
+            const outputDiv = document.getElementById(outputId);
+            
+            // CRITICAL FIX: Add null checks
+            if (!btn || !btnText || !spinner || !outputDiv) {
+                console.error(`Missing elements for explainPriceVolatility: ${safeCropName}`);
+                window.showToast("System Error: Cannot run analysis.");
+                return;
+            }
+
+            const systemPrompt = `You are an agricultural economist. Given the crop and price change, use Google Search to find the *most likely* recent event (e.g., monsoon status, import policy, harvest arrival) causing this price volatility in India. Explain it in 1-2 concise sentences. Do not use markdown.`;
+            const userQuery = `Crop: ${cropName}. Today's Price: ₹${priceToday}. Yesterday's Price: ₹${priceYesterday}. Explain the reason for this price change in the Indian market.`;
+            
+            btnText.textContent = 'Researching...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            outputDiv.classList.remove('hidden');
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, true); // Grounding IS needed
+
+                outputDiv.textContent = response.text;
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error) {
+                console.error("Gemini API Volatility Error:", error);
+                outputDiv.textContent = "❌ Explanation failed.";
+            } finally {
+                // CRITICAL FIX: Restore button state
+                btnText.textContent = '✨ Explain Volatility';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        
+        // --- GEMINI FEATURE H: CROP LOAN ADVISOR (Moved to Diagnosis Page) ---
+        window.calculateLoanRecommendation = async function(form) {
+            const cropSelect = document.getElementById('loan-crop');
+            const yieldInput = document.getElementById('expected-yield');
+            
+            // CRITICAL FIX: Add null checks for form elements
+            if (!cropSelect || !yieldInput) {
+                console.error("Loan calculator form elements not found.");
+                window.showToast("System Error: Cannot load loan calculator.");
+                return;
+            }
+            
+            const selectedOption = cropSelect.options[cropSelect.selectedIndex];
+            const cropName = selectedOption.value;
+            const pricePerQuintal = parseFloat(selectedOption.getAttribute('data-price'));
+            const expectedYield = parseFloat(yieldInput.value);
+            
+            const btn = document.getElementById('loan-btn');
+            const btnText = document.getElementById('loan-text');
+            const spinner = document.getElementById('loan-spinner');
+            const outputDiv = document.getElementById('loan-output');
+            const contentDiv = document.getElementById('loan-content');
+            
+            // CRITICAL FIX: Add null checks for output elements
+            if (!btn || !btnText || !spinner || !outputDiv || !contentDiv) {
+                 console.error("Loan calculator output elements not found.");
+                 window.showToast("System Error: Cannot display loan results.");
+                 return;
+            }
+            
+            const originalButtonText = btnText.textContent;
+            
+            const estimatedRevenue = pricePerQuintal * expectedYield;
+            // Assuming 80% LTV (Loan-to-Value) on revenue, minus 9% interest.
+            const calculatedLoanAmount = estimatedRevenue * 0.8 * (1 - 0.09); 
+
+            const systemPrompt = `You are a friendly and conservative bank loan advisor for farmers in India. Given the calculated estimated revenue and loan amount (at ~9% interest), confirm these numbers to the user. Then, provide 2-3 practical next steps for applying for a KCC (Kisan Credit Card) or Agri-Loan. Use encouraging language.`;
+            const userQuery = `Crop: ${cropName}. Expected Yield: ${expectedYield} Quintals. Estimated Revenue: ₹${estimatedRevenue.toFixed(0)}. Calculated Max Loan Amount: ₹${calculatedLoanAmount.toFixed(0)}. Please confirm and provide next steps for a loan application in India.`;
+
+            btnText.textContent = 'Calculating...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            outputDiv.classList.remove('hidden');
+            contentDiv.textContent = 'Analyzing financial data...';
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, true); // Grounding for bank-specific info
+
+                contentDiv.textContent = response.text;
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error) {
+                console.error("Gemini API Loan Error:", error);
+                contentDiv.textContent = "❌ Error calculating recommendation.";
+            } finally {
+                // CRITICAL FIX: Restore button state
+                btnText.textContent = originalButtonText;
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        
+        // --- GEMINI FEATURE M: CROP SALE TIMING ADVISOR (NEW) ---
+        window.getSaleWindow = async function(cropName, priceToday, form) {
+            const safeCropName = cropName.replace(/[^a-zA-Z0-9]/g, '-');
+            const stockInput = document.getElementById(`stock-${safeCropName}`);
+            const stockVolume = stockInput.value;
+
+            const btnId = `analyze-btn-sale-window-${safeCropName}`;
+            const textId = `analyze-text-sale-window-${safeCropName}`;
+            const spinnerId = `analyze-spinner-sale-window-${safeCropName}`;
+            const outputId = `sale-window-${safeCropName}`;
+
+            const btn = document.getElementById(btnId);
+            const btnText = document.getElementById(textId);
+            const spinner = document.getElementById(spinnerId);
+            const outputDiv = document.getElementById(outputId);
+
+            if (!btn || !btnText || !spinner || !outputDiv || !stockVolume) {
+                console.error(`Missing elements for getSaleWindow: ${safeCropName}`);
+                window.showToast("System Error: Cannot run analysis.");
+                return;
+            }
+
+            const systemPrompt = `You are an expert agricultural commodities trader in India. Given the crop, current price, and available stock, use Google Search to identify the next major market event (e.g., import arrivals, festival demand, policy changes) in the next 1-3 months. Recommend the best 1-2 month window to sell this stock for maximum profit. Be concise (2-3 sentences).`;
+            const userQuery = `Crop: ${cropName}. Current Price: ₹${priceToday}. Available Stock: ${stockVolume} Quintals. What is the best 1-2 month window to sell this stock in India for maximum profit?`;
+            
+            btnText.textContent = 'Forecasting...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            outputDiv.classList.remove('hidden');
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, true); // Grounding IS needed
+
+                outputDiv.textContent = response.text;
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error)
+            {
+                console.error("Gemini API Sale Window Error:", error);
+                outputDiv.textContent = "❌ Forecast failed.";
+            } finally {
+                btnText.textContent = '✨ Sale Window';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        
+        // --- GEMINI FEATURE N: CROP EXPORT VIABILITY (NEW) ---
+        window.getExportViability = async function(cropName, form) {
+            const safeCropName = cropName.replace(/[^a-zA-Z0-9]/g, '-');
+            const surplusInput = document.getElementById(`surplus-${safeCropName}`);
+            const surplusVolume = surplusInput.value;
+
+            const btnId = `analyze-btn-export-${safeCropName}`;
+            const textId = `analyze-text-export-${safeCropName}`;
+            const spinnerId = `analyze-spinner-export-${safeCropName}`;
+            const outputId = `export-${safeCropName}`;
+
+            const btn = document.getElementById(btnId);
+            const btnText = document.getElementById(textId);
+            const spinner = document.getElementById(spinnerId);
+            const outputDiv = document.getElementById(outputId);
+
+            if (!btn || !btnText || !spinner || !outputDiv || !surplusVolume) {
+                console.error(`Missing elements for getExportViability: ${safeCropName}`);
+                window.showToast("System Error: Cannot run analysis.");
+                return;
+            }
+
+            const systemPrompt = `You are a global agricultural trade analyst. Given the crop and surplus volume, use Google Search to assess its export viability from India. Provide a concise summary with bold titles: **1. Top 3 Export Markets:**, **2. Global Price Trend (Up/Down/Stable):**, and **3. Key Hurdle (e.g., 'EU Quality Standards'):**.`;
+            const userQuery = `Crop: ${cropName}. Available Surplus: ${surplusVolume} Quintals. Assess the export viability for this crop from India.`;
+            
+            btnText.textContent = 'Assessing...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            outputDiv.classList.remove('hidden');
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, true); // Grounding IS needed
+
+                outputDiv.innerHTML = response.text.replace(/\n/g, '<br>'); // Preserve line breaks
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error)
+            {
+                console.error("Gemini API Export Error:", error);
+                outputDiv.textContent = "❌ Assessment failed.";
+            } finally {
+                btnText.textContent = '✨ Export Viability';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        
+        // --- GEMINI FEATURE B: SCHEME EXPLAINER & ELEGIBILITY (Government Schemes Page) ---
+
+        window.createSchemesPage = function() {
+            const schemes = [
+                { id: "pmfby", name: "Pradhan Mantri Fasal Bima Yojana (PMFBY)", description: "Provides crop insurance against non-preventable natural risks, offering financial support to farmers suffering crop loss/damage arising out of unforeseen events.", icon: "☔", criteria: "Must be a farmer, cultivating notified crops in notified areas. Loan-taking farmers are compulsorily covered." },
+                { id: "kcc", name: "Kisan Credit Card (KCC)", description: "Offers timely and adequate credit support to farmers from banks for their agricultural needs, including buying seeds, fertilizers, and other expenses.", icon: "💰", criteria: "Farmers, joint cultivators, sharecroppers, tenant farmers, and Self Help Groups (SHGs) are eligible. Age typically 18 to 75 years." },
+                { id: "shc", name: "Soil Health Card Scheme", description: "Promotes soil testing to ensure balanced use of fertilizers. It provides farmers with a report on their soil's nutrient status and recommendations on dosage.", icon: "🧪", criteria: "All farmers in the country are eligible, regardless of land holding size." },
+                { id: "pkv", name: "Paramparagat Krishi Vikas Yojana (PKVY)", description: "Encourages organic farming through Cluster approach. The scheme helps farmers convert their fields into certified organic farms over a three-year period.", icon: "🌿", criteria: "Farmers who form a cluster (group of 20 or more) are eligible. Priority is given to marginal and small farmers." },
+                // --- NEW SCHEMES ADDED BELOW ---
+                { id: "pmkisan", name: "PM Kisan Samman Nidhi (PM-KISAN)", description: "Provides direct income support of ₹6,000 per year in three equal installments to all landholding farmer families across the country, subject to certain exclusion criteria.", icon: "💵", criteria: "Must be a small/marginal landholding farmer family (husband, wife, and minor children). Certain professionals, pensioners, and high-income taxpayers are excluded." },
+                { id: "rkvy", name: "Rashtriya Krishi Vikas Yojana (RKVY)", description: "A scheme for agricultural and allied sector development focused on giving states flexibility and autonomy in program design. It promotes capital formation in agriculture.", icon: "⚙️", criteria: "The scheme targets state governments and agricultural institutions, but individual farmers benefit through state projects like infrastructure development, technology adoption, and diversification initiatives. Farmer participation is indirect through state government implementation." }
+                // --- END NEW SCHEMES ---
+            ];
+
+            const schemeCards = schemes.map(s => {
+                // CRITICAL FIX: Safely escape single quotes for embedding within the single-quoted onclick attribute
+                const safeName = s.name.replace(/'/g, "\\'");
+                const safeDescription = s.description.replace(/'/g, "\\'");
+                const safeCriteria = s.criteria.replace(/'/g, "\\'");
+
+                return `
+                    <div class="bg-white p-6 card rounded-xl flex flex-col items-start space-y-3 hover:shadow-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="text-4xl">${s.icon}</div>
+                            <h3 class="text-xl font-bold text-lime-700">${s.name}</h3>
+                        </div>
+                        <p id="desc-${s.id}" class="text-gray-600 flex-grow">${s.description}</p>
+                        
+                        <div class="w-full flex justify-between space-x-2 mt-4">
+                            <button onclick="window.simplifyScheme('${s.id}', '${safeName}', '${safeDescription}')" 
+                                    id="simplify-btn-${s.id}"
+                                    class="w-1/2 px-3 py-2 bg-indigo-500 text-white text-sm font-semibold rounded-lg hover:bg-indigo-600 transition flex items-center justify-center">
+                                <span id="simplify-text-${s.id}">✨ Simplify Scheme</span>
+                                 <div id="simplify-spinner-${s.id}" class="hidden ml-2 w-4 h-4 border-2 border-white rounded-full loading-spinner"></div>
+                            </button>
+                            
+                            <button onclick="window.showEligibilityForm('${s.id}', '${safeName}', '${safeCriteria}')" 
+                                    id="eligibility-btn-${s.id}"
+                                    class="w-1/2 px-3 py-2 bg-pink-500 text-white text-sm font-semibold rounded-lg hover:bg-pink-600 transition flex items-center justify-center">
+                                <span>✨ Check Eligibility</span>
+                            </button>
+                        </div>
+
+                        <div id="simplified-output-${s.id}" class="simplified-output w-full border-t pt-4 mt-4 hidden"></div>
+                        <div id="eligibility-form-${s.id}" class="eligibility-form w-full border-t pt-4 mt-4 hidden">
+                            <!-- Eligibility Form will be inserted here -->
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="grid md:grid-cols-2 gap-6">
+                    ${schemeCards}
+                </div>
+                <div class="mt-8 bg-lime-50 p-6 card rounded-xl">
+                    <p class="text-lime-700 font-semibold">For more details, please visit the official Government of India agriculture portal.</p>
+                </div>
+            `;
+        }
+
+        // --- GEMINI FEATURE B: SCHEME SIMPLIFICATION ---
+        window.simplifyScheme = async function(schemeId, schemeName, description) {
+            const btn = document.getElementById(`simplify-btn-${schemeId}`);
+            const btnText = document.getElementById(`simplify-text-${schemeId}`);
+            const spinner = document.getElementById(`simplify-spinner-${schemeId}`);
+            const outputDiv = document.getElementById(`simplified-output-${schemeId}`);
+            const eligibilityForm = document.getElementById(`eligibility-form-${schemeId}`);
+
+            // CRITICAL FIX: Add null checks
+            if (!btn || !btnText || !spinner || !outputDiv || !eligibilityForm) {
+                console.error(`Missing elements for simplifyScheme: ${schemeId}`);
+                window.showToast("System Error: Cannot simplify scheme.");
+                return;
+            }
+
+            // Hide eligibility form if it's open
+            eligibilityForm.classList.add('hidden');
+            outputDiv.classList.toggle('hidden');
+
+            // If it's already visible and has content, just hide it
+            if (outputDiv.innerHTML.length > 0 && !outputDiv.classList.contains('hidden')) {
+                return;
+            }
+
+            const systemPrompt = `You are an expert at simplifying complex government language for a rural Indian audience. Do not use markdown. Use short sentences and simple bullet points. The tone should be encouraging and clear.`;
+            const userQuery = `Simplify this government scheme: ${schemeName}. Official Description: ${description}. Focus on: (1) What is this scheme? (2) What is the main benefit for me? (3) How do I apply?`;
+
+            btnText.textContent = 'Simplifying...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, false); // Grounding not needed
+
+                outputDiv.innerHTML = response.text.replace(/\n/g, '<br>');
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error) {
+                console.error("Gemini API Simplification Error:", error);
+                outputDiv.innerHTML = `<p class="text-red-500">❌ Error simplifying scheme. Please try again.</p>`;
+            } finally {
+                btnText.textContent = '✨ Simplify Scheme';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+
+        // --- GEMINI FEATURE E: SCHEME ELIGIBILITY CHECKER ---
+        
+        window.showEligibilityForm = function(schemeId, schemeName, criteria) {
+            const formContainer = document.getElementById(`eligibility-form-${schemeId}`);
+            const simplifyOutput = document.getElementById(`simplified-output-${schemeId}`);
+            
+            // CRITICAL FIX: Ensure elements exist before proceeding
+            if (!formContainer || !simplifyOutput) {
+                console.error(`Missing form elements for scheme ID: ${schemeId}`);
+                window.showToast("System error: Cannot load eligibility checker.");
+                return;
+            }
+            
+            // Hide simplification output and show form container
+            simplifyOutput.classList.add('hidden');
+            formContainer.classList.remove('hidden');
+
+            formContainer.innerHTML = `
+                <h4 class="text-lg font-bold text-pink-700 mb-3">Your Profile for ${schemeName}</h4>
+                <form id="eligibility-check-form-${schemeId}" onsubmit="event.preventDefault(); window.checkEligibility('${schemeId}', '${schemeName}', '${criteria}')" class="space-y-3">
+                    <input type="number" id="land-size-${schemeId}" placeholder="Land Size (Acres)" required class="w-full px-3 py-2 border rounded-lg" min="0">
+                    <input type="number" id="annual-income-${schemeId}" placeholder="Annual Agricultural Income (₹)" required class="w-full px-3 py-2 border rounded-lg" min="0">
+                    <select id="loan-status-${schemeId}" required class="w-full px-3 py-2 border rounded-lg bg-white">
+                        <option value="">-- Do you have an Agri Loan? --</option>
+                        <option value="Yes">Yes, I have an active agricultural loan.</option>
+                        <option value="No">No, I do not have a loan.</option>
+                    </select>
+                    <button type="submit" id="check-btn-${schemeId}" class="w-full px-4 py-2 bg-pink-600 text-white font-semibold rounded-lg hover:bg-pink-700 transition flex items-center justify-center">
+                        <span id="check-text-${schemeId}">Check Eligibility Now</span>
+                        <div id="check-spinner-${schemeId}" class="hidden ml-2 w-5 h-5 border-2 border-white rounded-full loading-spinner"></div>
+                    </button>
+                    <div id="eligibility-result-${schemeId}" class="mt-3 p-3 bg-pink-50 rounded-lg text-gray-700 hidden"></div>
+                </form>
+            `;
+        }
+
+        window.checkEligibility = async function(schemeId, schemeName, criteria) {
+            const landSize = document.getElementById(`land-size-${schemeId}`).value;
+            const income = document.getElementById(`annual-income-${schemeId}`).value;
+            const loanStatus = document.getElementById(`loan-status-${schemeId}`).value;
+            
+            const btn = document.getElementById(`check-btn-${schemeId}`);
+            const btnText = document.getElementById(`check-text-${schemeId}`);
+            const spinner = document.getElementById(`check-spinner-${schemeId}`);
+            const resultDiv = document.getElementById(`eligibility-result-${schemeId}`);
+
+            const systemPrompt = `You are a government scheme advisor. Based on the scheme criteria and the farmer's profile, determine if the farmer is likely eligible. Provide a clear result, listing (A) the farmer's profile data, (B) which criteria they meet, and (C) if they are Eligible or Not Eligible. Use encouraging language.`;
+            
+            const userQuery = `Scheme: ${schemeName}. Official Criteria: ${criteria}. Farmer's Profile: Land Size: ${landSize} Acres, Annual Income: ₹${income}, Loan Status: ${loanStatus}. Analyze and determine eligibility.`;
+
+            btnText.textContent = 'Checking...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<p class="text-center text-pink-500">Processing profile against scheme rules...</p>';
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, true); // Use search grounding for up-to-date eligibility rules
+
+                resultDiv.innerHTML = response.text.replace(/\n/g, '<br>');
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error) {
+                console.error("Gemini API Eligibility Error:", error);
+                resultDiv.innerHTML = `<p class="text-red-500">❌ Error checking eligibility. Please try again.</p>`;
+            } finally {
+                btnText.textContent = 'Check Eligibility Now';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        
+        // --- Contact Page ---
+        window.createContactPage = function() {
+            // CRITICAL FIX: Initialize EmailJS *inside* the function that creates the page
+            // This ensures it's initialized only when the page is loaded.
+            try {
+                console.log(`EmailJS Initializing with Public Key: ${EMAILJS_PUBLIC_KEY}`);
+                emailjs.init(EMAILJS_PUBLIC_KEY);
+            } catch (e) {
+                console.error("EmailJS Initialization Error:", e);
+                window.showToast("Error initializing contact service.");
+            }
+
+            return `
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Contact Form (Left Column) -->
+                    <div class="bg-white p-6 card rounded-xl shadow-lg">
+                        <h3 class="text-2xl font-bold text-lime-700 mb-4">Send Us Your Inquiry</h3>
+                        <form id="contact-form" onsubmit="event.preventDefault(); window.handleContactForm(this)" class="space-y-4">
+                            
+                            <div>
+                                <label for="user_name" class="block text-sm font-medium text-gray-700">Your Name</label>
+                                <input type="text" name="user_name" id="user_name" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-lime-500 focus:border-lime-500">
+                            </div>
+
+                            <div>
+                                <label for="user_mobile" class="block text-sm font-medium text-gray-700">Your Mobile Number</label>
+                                <input type="tel" name="user_mobile" id="user_mobile" pattern="[0-9]{10,15}" required placeholder="e.g., 9876543210" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-lime-500 focus:border-lime-500">
+                            </div>
+
+                            <div>
+                                <label for="subject" class="block text-sm font-medium text-gray-700">Subject</label>
+                                <input type="text" name="subject" id="subject" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-lime-500 focus:border-lime-500">
+                            </div>
+
+                            <div>
+                                <label for="message" class="block text-sm font-medium text-gray-700">Message / Proposal</label>
+                                <textarea name="message" id="message" rows="6" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-lime-500 focus:border-lime-500"></textarea>
+                            </div>
+
+                            <button type="submit" id="contact-btn" class="w-full px-4 py-3 bg-lime-600 text-white font-semibold rounded-lg hover:bg-lime-700 transition shadow-lg flex items-center justify-center">
+                                <span id="contact-text">Send Inquiry</span>
+                                <div id="contact-spinner" class="hidden ml-2 w-5 h-5 border-2 border-white rounded-full loading-spinner"></div>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Donate/UPI + AI Business Plan (Right Column) -->
+                    <div class="space-y-8">
+                        
+                        <!-- AI Business Plan Draft (NEW LLM FEATURE) -->
+                        <div class="bg-indigo-50 p-6 card rounded-xl shadow-lg">
+                            <h3 class="text-2xl font-bold text-indigo-700 mb-4 flex items-center">
+                                <span class="text-3xl mr-2">📈</span> Business Plan Draft Generator
+                            </h3>
+                            <p class="text-gray-600 mb-4">Draft a simple business plan summary for your farm venture to pitch to investors or banks.</p>
+                            <form id="business-plan-form" onsubmit="event.preventDefault(); window.draftBusinessPlan(this)">
+                                <input type="text" id="venture-name" placeholder="Venture Name (e.g., 'Organic Mahabaleshwar')" required class="w-full px-3 py-2 border rounded-lg mb-3">
+                                <input type="text" id="primary-crop" placeholder="Primary Crop/Focus (e.g., Tomatoes, Dairy)" required class="w-full px-3 py-2 border rounded-lg mb-3">
+                                <input type="number" id="investment-needed" placeholder="Investment Needed (₹)" required class="w-full px-3 py-2 border rounded-lg mb-3">
+                                
+                                <button type="submit" id="draft-btn" class="w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition shadow-lg flex items-center justify-center">
+                                    <span id="draft-text">✨ Draft Business Plan</span>
+                                    <div id="draft-spinner" class="hidden ml-2 w-5 h-5 border-2 border-white rounded-full loading-spinner"></div>
+                                </button>
+                            </form>
+
+                            <div id="plan-output" class="mt-4 pt-4 border-t border-gray-100 hidden">
+                                <h4 class="text-lg font-bold text-indigo-600 mb-2">Drafted Plan Summary:</h4>
+                                <div id="plan-content" class="bg-white p-3 rounded-lg border text-sm whitespace-pre-wrap text-gray-700"></div>
+                                <button onclick="window.copyPlanToMessage()" class="mt-2 px-3 py-1 bg-lime-500 text-white text-xs font-semibold rounded-lg hover:bg-lime-600 transition">
+                                    Copy to Inquiry Message
+                                </button>
+                            </div>
+                        </div>
+
+
+                        <!-- Donation Section -->
+                        <div class="bg-white p-6 card rounded-xl shadow-lg text-center">
+                            <h3 class="text-2xl font-bold text-lime-700 mb-4">Support Our Mission</h3>
+                            <p class="text-gray-600 mb-4">Help us keep this service free for farmers by making a small donation.</p>
+                            <a href="upi://pay?pa=chetanbhagure899@upi&pn=SmartAgriConnect&am=100" class="inline-block px-6 py-3 bg-green-500 text-white font-semibold rounded-full hover:bg-green-600 transition shadow-lg">
+                                Donate via UPI
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // --- EMAILJS CONTACT FORM HANDLER ---
+        window.handleContactForm = async function(form) {
+            const btn = document.getElementById('contact-btn');
+            const btnText = document.getElementById('contact-text');
+            const spinner = document.getElementById('contact-spinner');
+
+            if (!btn || !btnText || !spinner) return;
+            
+            // CRITICAL FIX: Ensure payload variables match the EmailJS template
+            // Your template (template_uwpzl0i) likely expects:
+            // {{subject}}, {{message}}, {{user_name}}, {{user_mobile}}, {{to_email}}
+            const templateParams = {
+                user_name: document.getElementById('user_name').value,
+                user_mobile: document.getElementById('user_mobile').value,
+                to_email: CONTACT_EMAIL,
+                subject: document.getElementById('subject').value,
+                message: document.getElementById('message').value,
+                // Add a generic reply_to for system use, as EmailJS might require it
+                reply_to: "no-reply@agriconnect.com" 
+            };
+
+            btnText.textContent = 'Sending...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            
+            try {
+                // Use the v4 SDK syntax
+                const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+                
+                console.log('EmailJS Success:', response.status, response.text);
+                window.showToast("Inquiry sent successfully!");
+                form.reset();
+                
+            } catch (error) {
+                // Log the detailed error object
+                console.error("Failed to send inquiry. Error:", error);
+                // Check if the error object has specific text, otherwise show generic
+                const errorText = error.text || "Unknown error. Check console and EmailJS config.";
+                
+                // Check for the "Unsupported SDK" error specifically
+                if (error.text && error.text.includes("SDK version is unsupported")) {
+                     window.showToast(`Error: EmailJS SDK is outdated. Please contact support.`);
+                } else if (error.status === 412) {
+                     window.showToast(`Error: Public Key is invalid. Check config.`);
+                } else {
+                     window.showToast(`Failed to send. Error: ${errorText}`);
+                }
+                
+            } finally {
+                btnText.textContent = 'Send Inquiry';
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+
+        // --- GEMINI FEATURE G: FARM BUSINESS PLAN DRAFTER ---
+
+        window.draftBusinessPlan = async function(form) {
+            const ventureName = document.getElementById('venture-name').value;
+            const primaryCrop = document.getElementById('primary-crop').value;
+            const investmentNeeded = document.getElementById('investment-needed').value;
+
+            const btn = document.getElementById('draft-btn');
+            const btnText = document.getElementById('draft-text');
+            const spinner = document.getElementById('draft-spinner');
+            const outputDiv = document.getElementById('plan-output');
+            const contentDiv = document.getElementById('plan-content');
+            
+             // Add null checks for safety
+            if (!btn || !btnText || !spinner || !outputDiv || !contentDiv) {
+                console.error("Missing elements for Business Plan Draft.");
+                window.showToast("System Error: Cannot load business plan generator.");
+                return;
+            }
+
+            // Save original button content for restoration
+            const originalButtonContent = btnText.textContent;
+
+            const systemPrompt = `You are a professional business consultant specializing in agricultural startups in India. Draft a concise, one-paragraph business summary based on the farmer's input. The summary must include the venture's objective, market opportunity, financial request, and clear, structured sections marked by bold titles (e.g., **Venture:**, **Opportunity:**, **Financial Request:**). Ensure the tone is formal and persuasive, suitable for a pitch to a bank or investor.`;
+            
+            const userQuery = `Draft a business plan summary for a venture named: ${ventureName}. The primary agricultural focus is: ${primaryCrop}. The estimated initial investment needed is: ₹${investmentNeeded}.`;
+
+            btnText.textContent = 'Drafting...';
+            spinner.classList.remove('hidden');
+            btn.disabled = true;
+            outputDiv.classList.remove('hidden');
+            contentDiv.textContent = 'Generating professional draft...';
+
+            try {
+                const response = await window.callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                }, true); // Use search grounding for industry context
+
+                contentDiv.textContent = response.text;
+                window.speakMarathi(response.text); // Speak the result
+
+            } catch (error) {
+                console.error("Gemini API Business Plan Error:", error);
+                contentDiv.textContent = `❌ Error drafting plan. Please check the console for API details.`;
+            } finally {
+                // CRITICAL FIX: Restore button state
+                btnText.textContent = originalButtonContent;
+                spinner.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        
+        // --- Utility to copy generated plan to contact form ---
+        window.copyPlanToMessage = function() {
+            const planContentElement = document.getElementById('plan-content');
+            const messageField = document.getElementById('message');
+            const subjectField = document.getElementById('subject');
+
+             // CRITICAL FIX: Add null checks
+            if (!planContentElement || !messageField || !subjectField) {
+                 window.showToast("Error: Missing elements to copy plan.");
+                 console.error("Missing elements for copyPlanToMessage.");
+                 return;
+            }
+            
+            const planContent = planContentElement.textContent;
+
+
+            if (planContent && planContent.startsWith('❌ Error')) {
+                 window.showToast("Cannot copy error message. Please generate a valid plan first.");
+            } else if (planContent) {
+                // Check if the content is just the spinner/placeholder text
+                 if (planContent.includes('Generating professional draft') || planContent.includes('Analyzing financial data')) {
+                     window.showToast("Please wait for the draft to finish generating.");
+                     return;
+                 }
+                
+                messageField.value = `--- Business Proposal Draft ---\n\n${planContent}\n\n--- End of Draft ---\n\nMy name is [Your Name] and I would like more information on this proposal.`;
+                subjectField.value = "Inquiry: Farm Business Plan Proposal";
+                window.showToast("Business plan copied to the inquiry message field!");
+            } else {
+                window.showToast("Please generate the plan first.");
+            }
+        }
+        
+        // --- 7. NOTIFICATION SYSTEM (Web Push API + Interval) ---
+
+        let notificationInterval = null;
+
+        window.requestNotificationPermission = function() {
+            if (!("Notification" in window)) {
+                window.showToast("This browser does not support desktop notifications.");
+                return;
+            }
+
+            Notification.requestPermission().then(permission => {
+                window.updateNotificationButton(permission);
+                if (permission === "granted") {
+                    window.startNotificationService();
+                    window.showToast("Notification alerts are now enabled!");
+                } else if (permission === "denied") {
+                    window.showToast("Notification permission denied. Cannot send alerts.");
+                }
+            });
+        }
+
+        window.updateNotificationButton = function(permission) {
+            const btn = document.getElementById('notify-btn');
+            const btnMobile = document.getElementById('notify-status-mobile');
+            if (!btn) return;
+
+            if (permission === "granted") {
+                btn.innerHTML = `<span id="notify-status">Alerts ON 🔔</span>`;
+                btn.classList.remove('bg-yellow-400', 'hover:bg-yellow-300');
+                btn.classList.add('bg-green-500', 'hover:bg-green-600');
+                if (btnMobile) btnMobile.textContent = 'Alerts ON 🔔';
+            } else {
+                btn.innerHTML = `<span id="notify-status">Enable Alerts</span>`;
+                btn.classList.add('bg-yellow-400', 'hover:bg-yellow-300');
+                btn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                if (btnMobile) btnMobile.textContent = 'Enable Alerts';
+            }
+        }
+
+        window.startNotificationService = function() {
+            if (notificationInterval) clearInterval(notificationInterval);
+
+            if (Notification.permission === "granted") {
+                window.updateNotificationButton("granted");
+
+                // Start the hourly alert loop
+                notificationInterval = setInterval(async () => {
+                    await window.sendPeriodicAlert();
+                }, NOTIFICATION_INTERVAL_MS);
+
+                console.log(`Notification service started with an interval of ${NOTIFICATION_INTERVAL_MS / 3600000} hour.`);
+
+            } else {
+                window.updateNotificationButton(Notification.permission);
+                console.log("Notification permission not granted. Interval not started.");
+            }
+        }
+
+        window.sendPeriodicAlert = async function() {
+            const village = DEFAULT_LOCATION_NAME;
+            
+            // 1. Weather Summary (using static fallback data)
+            let weatherSummary = "Weather data unavailable.";
+
+            // Use the current static data
+            if (window.currentWeatherData) {
+                const temp = window.currentWeatherData.temp.toFixed(0);
+                const description = window.currentWeatherData.description;
+                weatherSummary = `Weather in ${village}: ${description} and ${temp}°C 🌦️`;
+            } else {
+                // If currentWeatherData isn't set, run the fetch function once to prime it
+                // Use a non-async call if fetchWeather is not async (which it isn't anymore)
+                window.fetchWeather(); // This will set the global variable
+                if (window.currentWeatherData) {
+                    const temp = window.currentWeatherData.temp.toFixed(0);
+                    const description = window.currentWeatherData.description;
+                    weatherSummary = `Weather in ${village}: ${description} and ${temp}°C 🌦️`;
+                }
+            }
+
+
+            // 2. Mandi Price Alert (Soybean/Wheat price change)
+            const soybean = mandiData.find(d => d.crop === 'Soybean');
+            const wheat = mandiData.find(d => d.crop === 'Wheat');
+
+            let priceSummary = "Prices stable today.";
+            if (soybean.today !== soybean.yesterday || wheat.today !== wheat.yesterday) {
+                 priceSummary = "Mandi Price Changes: ";
+                 if (soybean.today > soybean.yesterday) priceSummary += `Soybean price UP! ₹${soybean.today}. `;
+                 else if (soybean.today < soybean.yesterday) priceSummary += `Soybean price DOWN! ₹${soybean.today}. `;
+                 if (wheat.today > wheat.yesterday) priceSummary += `Wheat price UP! ₹${wheat.today}.`;
+                 else if (wheat.today < wheat.yesterday) priceSummary += `Wheat price DOWN! ₹${wheat.today}.`;
+            }
+
+            const finalMessage = `${weatherSummary}\n${priceSummary}`;
+
+            // Display the notification
+            new Notification("Smart AgriConnect Alert 💰", {
+                body: finalMessage,
+                icon: 'https://placehold.co/128x128/22c55e/ffffff?text=AC'
+            });
+
+            console.log("Notification sent:", finalMessage);
+        }
+        
+        // --- 8. INITIAL LOAD & ENTRY POINT ---
+        window.onload = function() {
+            // CRITICAL FIX: Ensure weather data is fetched and populated right at load
+            window.fetchWeather(); 
+            // No Firebase initialization needed anymore, just start the notification service if permitted
+            window.startNotificationService(); 
+            window.showPage('home');
+        };
+
+    </script>
+</body>
+</html>
+
